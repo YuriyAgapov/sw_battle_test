@@ -7,9 +7,15 @@
 
 namespace sw::game
 {
-	struct UnitMovementComponent : public ecs::Component
+	struct MovementComponent : public ecs::Component
 	{
+		bool active{true};
 		std::optional<math::Vector2u> target;
 		uint32_t speed{1};
+
+		bool canMove() const
+		{
+			return active && speed > 0 && target;
+		}
 	};
 }

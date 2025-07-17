@@ -1,7 +1,8 @@
+#include "Game/Systems/DamageSystem.hpp"
+#include "Game/Systems/UnitControlSystem.hpp"
 #include <ECS/Context.hpp>
-#include <Game/Systems/MeleeAttackSystem.hpp>
-#include <Game/Systems/RangeAttackSystem.hpp>
-#include <Game/Systems/UnitMovementSystem.hpp>
+#include <Game/Systems/WeaponSystem.hpp>
+#include <Game/Systems/MovementSystem.hpp>
 #include <IO/Commands/CreateMap.hpp>
 #include <IO/Commands/March.hpp>
 #include <IO/Commands/SpawnHunter.hpp>
@@ -37,9 +38,10 @@ int main(int argc, char** argv)
 	// Code for example...
 
 	auto context = std::make_shared<ecs::Context>();
-	context->addSystem(std::make_unique<game::UnitMovementSystem>(context));
-	context->addSystem(std::make_unique<game::MeleeAttackSystem>(context));
-	context->addSystem(std::make_unique<game::RangeAttackSystem>(context));
+	context->addSystem(std::make_unique<game::MovementSystem>(context));
+	context->addSystem(std::make_unique<game::DamageSystem>(context));
+	context->addSystem(std::make_unique<game::UnitControlSystem>(context));
+	context->addSystem(std::make_unique<game::WeaponSystem>(context));
 
 	std::cout << "Commands:\n";
 	io::CommandParser parser;
