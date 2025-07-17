@@ -6,8 +6,7 @@ namespace sw::ecs
 {
 	struct Component
 	{
-		uint32_t componentId{};
-		uint32_t entityId{};
+		uint64_t id{};
 
 		virtual ~Component() = default;
 	};

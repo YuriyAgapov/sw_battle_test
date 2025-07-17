@@ -1,11 +1,10 @@
 #include "Context.hpp"
+
 #include "System.hpp"
 
 namespace sw::ecs
 {
-	Context::~Context()
-	{
-	}
+	Context::~Context() {}
 
 	Entity& Context::addEntity()
 	{
@@ -29,27 +28,35 @@ namespace sw::ecs
 		components.clear();
 		systems.clear();
 		nextEntityId = 0;
-		nextComponentId = 0;
 	}
 
 	void Context::advance()
 	{
+		// advance systems
 		for (auto& system : systems)
 		{
 			system->advance();
 		}
 
+		// prepare events
+		eventDispatcher.dispatchAll();
+
+		// remove pending kill
 		std::erase_if(
 			entities,
-			[this](const auto& item)
+			[this](const auto& entityItem)
 			{
-				auto& entity = item.second;
+				const Entity& entity = entityItem.second;
 				if (entity.deleteLater)
 				{
-					for (auto comp_iter : entity.components)
-					{
-						components.erase(comp_iter.second);
-					}
+					// remove relatecd components
+					std::erase_if(
+						components,
+						[entityId = entity.id](const auto& compItem)
+						{
+							return IsOwner(entityId, compItem.first);
+						}
+					);
 				}
 				return entity.deleteLater;
 			});
@@ -58,5 +65,20 @@ namespace sw::ecs
 	void Context::addSystem(std::unique_ptr<System> system)
 	{
 		systems.emplace_back(std::move(system));
+	}
+
+	EventDispatcher& Context::getDispatcher()
+	{
+		return eventDispatcher;
+	}
+
+	const std::unordered_map<uint32_t, Entity>& Context::getEntities() const
+	{
+		return entities;
+	}
+
+	const Context::ComponentMap& Context::getComponents() const
+	{
+		return components;
 	}
 }

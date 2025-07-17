@@ -6,14 +6,51 @@
 namespace sw::math
 {
 	template <typename TValue>
+	bool isEqual(const TValue a, const TValue b, const TValue tolerance = std::numeric_limits<TValue>::epsilon())
+	{
+		if constexpr (std::is_floating_point_v<TValue>)
+			return std::abs(a - b) < tolerance;
+		else
+			return a == b;
+	}
+
+	template <typename TTo, typename TFrom>
+	TTo roundValue(const TFrom value)
+	{
+		if constexpr (std::is_floating_point_v<TFrom>)
+			return static_cast<TTo>(std::round(value));
+		else
+			return static_cast<TTo>(value);
+	}
+
+	template <typename TValue>
 	struct Vector2
 	{
+		using ValueType = TValue;
+
 		TValue x{};
 		TValue y{};
+
+		bool operator == (const Vector2<TValue>& other) const
+		{
+			return isEqual(x, other.x) && isEqual(y, other.y);
+		}
+
+		template <typename TToVector>
+		TToVector to() const
+		{
+			return TToVector{roundValue<typename TToVector::ValueType>(x), roundValue<typename TToVector::ValueType>(y)};
+		}
 	};
 
 	using Vector2d = Vector2<double>;
-	using Vector2u= Vector2<uint32_t>;
+	using Vector2u = Vector2<uint32_t>;
+
+	template <typename TToVector, typename TFromVector>
+	TToVector round(const TFromVector& vector)
+	{
+		return vector.template to<TToVector>();
+	}
 
 	template <typename TValue>
 	inline Vector2<TValue> operator - (const Vector2<TValue>& a, const Vector2<TValue>& b)
@@ -56,17 +93,5 @@ namespace sw::math
 
 		const Vector2d direction = delta / totalDistance;
 		return from + direction * distance;
-	}
-
-	template <typename TValue>
-	inline Vector2u round(const Vector2<TValue>& vector)
-	{
-		return Vector2u{std::round(vector.x), std::round(vector.y)};
-	}
-
-	template <typename TValue>
-	inline Vector2<TValue> operator == (const Vector2<TValue>& a, const Vector2<TValue>& b)
-	{
-		return a.x == b.x && a.y == b.y;
 	}
 }

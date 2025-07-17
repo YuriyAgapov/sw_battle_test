@@ -7,6 +7,6 @@ namespace sw::ecs
 	{
 		virtual ~System() = default;
 
-		virtual void advance() {}
+		virtual void advance() = 0;
 	};
 }
