@@ -1,12 +1,12 @@
 #pragma once
 
-#include <cstdint>
+#include "ComponentIndex.hpp"
 
 namespace sw::ecs
 {
 	struct Component
 	{
-		uint64_t id{};
+		ComponentIndex id;
 
 		virtual ~Component() = default;
 	};

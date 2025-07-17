@@ -2,6 +2,7 @@
 
 #include "Component.hpp"
 #include "ECS/EventDispatcher.hpp"
+#include "ComponentIndex.hpp"
 #include "Entity.hpp"
 
 #include <assert.h>
@@ -17,7 +18,7 @@ namespace sw::ecs
 	{
 	public:
 		using EntityMap = std::unordered_map<uint32_t, Entity>;
-		using ComponentMap = std::unordered_map<uint64_t, std::shared_ptr<Component>>;
+		using ComponentMap = std::unordered_map<ComponentIndex, std::shared_ptr<Component>>;
 
 		virtual ~Context();
 
@@ -41,7 +42,7 @@ namespace sw::ecs
 		std::shared_ptr<ComponentType> addComponent(Entity& entity, Args... args)
 		{
 			auto component = std::make_shared<ComponentType>(args...);
-			component->id = makeComponentId<ComponentType>(entity.id);
+			component->id = makeIndex<ComponentType>(entity.id);
 			components.emplace(component->id, component);
 			return component;
 		}
@@ -49,7 +50,7 @@ namespace sw::ecs
 		template <typename ComponentType>
 		std::shared_ptr<ComponentType> getComponent(const uint32_t entityId) const
 		{
-			const uint64_t componentId = makeComponentId<ComponentType>(entityId);
+			const ComponentIndex componentId = makeIndex<ComponentType>(entityId);
 			const auto compIter = components.find(componentId);
 			return compIter != components.end() ? std::static_pointer_cast<ComponentType>(compIter->second) : nullptr;
 		}
@@ -92,18 +93,18 @@ namespace sw::ecs
 		EventDispatcher& getDispatcher();
 
 	private:
-		static uint64_t makeComponentId(const uint32_t entityId, const size_t typeHash)
+		static ComponentIndex makeIndex(const uint32_t entityId, const size_t typeId)
 		{
-			return static_cast<uint64_t>(entityId) << 32 | typeHash;
+			return ComponentIndex{entityId, typeId};
 		}
 		template <typename ComponentType>
-		static uint64_t makeComponentId(const uint32_t entityId)
+		static ComponentIndex makeIndex(const uint32_t entityId)
 		{
-			return makeComponentId(entityId, typeid(ComponentType).hash_code());
+			return makeIndex(entityId, typeid(ComponentType).hash_code());
 		}
-		static bool IsOwner(const uint32_t entityId, const uint64_t componentId)
+		static bool IsOwner(const uint32_t entityId, const ComponentIndex& index)
 		{
-			return entityId == (componentId >> 32);
+			return entityId == index.enitityId;
 		}
 
 		EntityMap entities;
