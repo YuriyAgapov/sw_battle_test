@@ -9,7 +9,9 @@ namespace sw::game
 	struct RangeAttackSystem : public ecs::System
 	{
 	public:
-		RangeAttackSystem(std::shared_ptr<ecs::Context> context) {}
+		RangeAttackSystem(std::shared_ptr<ecs::Context> context) :
+				context(context)
+		{}
 
 		void advance()
 		{
@@ -17,6 +19,7 @@ namespace sw::game
 				[](auto rangeAttackComponent)
 				{
 					//...
+					return true;
 				});
 		}
 

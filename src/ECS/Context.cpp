@@ -3,6 +3,10 @@
 
 namespace sw::ecs
 {
+	Context::~Context()
+	{
+	}
+
 	Entity& Context::addEntity()
 	{
 		++nextEntityId;
@@ -23,6 +27,7 @@ namespace sw::ecs
 	{
 		entities.clear();
 		components.clear();
+		systems.clear();
 		nextEntityId = 0;
 		nextComponentId = 0;
 	}
@@ -36,21 +41,22 @@ namespace sw::ecs
 
 		std::erase_if(
 			entities,
-			[this](const auto& pair)
+			[this](const auto& item)
 			{
-				if (pair->second.delete_later)
+				auto& entity = item.second;
+				if (entity.deleteLater)
 				{
-					for (auto comp_iter : pair->second->components)
+					for (auto comp_iter : entity.components)
 					{
 						components.erase(comp_iter.second);
 					}
 				}
-				return pair->second.delete_later;
+				return entity.deleteLater;
 			});
 	}
 
 	void Context::addSystem(std::unique_ptr<System> system)
 	{
-		systems.emplace(std::move(system));
+		systems.emplace_back(std::move(system));
 	}
 }

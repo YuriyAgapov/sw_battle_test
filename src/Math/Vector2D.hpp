@@ -39,17 +39,23 @@ namespace sw::math
 		return Vector2<TValue>{a.x * value, a.y * value};
 	}
 
-	inline Vector2d moveTo(const Vector2d& from, const Vector2d& to, const double length)
+	template <typename TValue>
+	inline TValue length(const Vector2<TValue>& vector)
+	{
+		return std::hypot(vector.x, vector.y);
+	}
+
+	inline Vector2d moveTo(const Vector2d& from, const Vector2d& to, const double distance)
 	{
 		const Vector2d delta = to - from;
-		const double dist = std::sqrt(delta.x * delta.x + delta.y * delta.y);
-		if (dist == 0.0f)
+		const double totalDistance = length(delta);
+		if (totalDistance == 0.0f)
 			return from;
-		if (length >= dist)
+		if (distance >= totalDistance)
 			return to;
 
-		const Vector2d direction = delta / dist;
-		return from + direction * length;
+		const Vector2d direction = delta / totalDistance;
+		return from + direction * distance;
 	}
 
 	template <typename TValue>

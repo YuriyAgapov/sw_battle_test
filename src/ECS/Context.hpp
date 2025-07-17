@@ -14,6 +14,8 @@ namespace sw::ecs
 	class Context
 	{
 	public:
+		virtual ~Context();
+
 		Entity& addEntity();
 
 		const Entity& getEntity(const uint32_t entityId) const;
@@ -77,7 +79,8 @@ namespace sw::ecs
 		{
 			for (const auto& [entityId, entity] : entities)
 			{
-				auto componentsTuple = std::make_tuple(getComponents<ComponentTypes>(entityId)...);
+				//auto componentsTuple = std::make_tuple(getComponents<ComponentTypes>(entityId)...);
+				auto componentsTuple = getComponents<ComponentTypes...>(entityId);
 
 				if ((... && std::get<std::shared_ptr<ComponentTypes>>(componentsTuple)))
 				{

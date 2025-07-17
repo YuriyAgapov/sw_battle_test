@@ -10,6 +10,6 @@ namespace sw::game
 	struct UnitMovementComponent : public ecs::Component
 	{
 		std::optional<math::Vector2u> target;
-		uint32_t speed{};
+		uint32_t speed{1};
 	};
 }

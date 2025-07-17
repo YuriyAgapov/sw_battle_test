@@ -1,9 +1,16 @@
 cmake_minimum_required(VERSION 3.27)
-project(sw_battle_test)
+project(sw_battle)
 
 set(CMAKE_CXX_STANDARD 20)
+enable_testing()
 
-file(GLOB_RECURSE SOURCES src/*.cpp src/*.hpp)
-add_executable(sw_battle_test ${SOURCES})
+include(FetchContent)
+FetchContent_Declare(
+  googletest
+  URL https://github.com/google/googletest/archive/03597a01ee50ed33e9dfd640b249b4be3799d395.zip
+)
+set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(googletest)
 
-target_include_directories(sw_battle_test PUBLIC src/)
+add_subdirectory(src)
+add_subdirectory(tests)

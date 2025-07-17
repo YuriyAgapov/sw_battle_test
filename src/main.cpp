@@ -1,3 +1,7 @@
+#include <ECS/Context.hpp>
+#include <Game/Systems/MeleeAttackSystem.hpp>
+#include <Game/Systems/RangeAttackSystem.hpp>
+#include <Game/Systems/UnitMovementSystem.hpp>
 #include <IO/Commands/CreateMap.hpp>
 #include <IO/Commands/March.hpp>
 #include <IO/Commands/SpawnHunter.hpp>
@@ -31,6 +35,11 @@ int main(int argc, char** argv)
 	}
 
 	// Code for example...
+
+	auto context = std::make_shared<ecs::Context>();
+	context->addSystem(std::make_unique<game::UnitMovementSystem>(context));
+	context->addSystem(std::make_unique<game::MeleeAttackSystem>(context));
+	context->addSystem(std::make_unique<game::RangeAttackSystem>(context));
 
 	std::cout << "Commands:\n";
 	io::CommandParser parser;

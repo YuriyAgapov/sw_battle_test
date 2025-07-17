@@ -10,24 +10,28 @@ namespace sw::game
 	struct UnitMovementSystem : public ecs::System
 	{
 	public:
-		UnitMovementSystem(std::shared_ptr<ecs::Context> context) {}
+		UnitMovementSystem(std::shared_ptr<ecs::Context> context) :
+				context(context)
+		{}
 
 		void advance()
 		{
 			context->for_each<UnitComponent, UnitMovementComponent>(
-				[](auto UnitComponent, auto MovementComponent)
+				[](auto unit, auto movement)
 				{
-					if (UnitComponent->actionPoints < 1 || !MovementComponent->target || MovementComponent->speed == 0)
+					if (unit->actionPoints < 1 || !movement->target || movement->speed == 0)
 					{
-						return;
+						return true;
 					}
 
-					const math::Vector2u target = *MovementComponent->target;
-					UnitComponent->pos = math::moveTo(UnitComponent->pos, target, MovementComponent->speed);
-					if (UnitComponent->pos == target)
+					const math::Vector2u target = *movement->target;
+					unit->pos = math::moveTo(unit->pos, target, movement->speed);
+					--unit->actionPoints;
+					if (unit->pos == target)
 					{
-						MovementComponent->target.reset();
+						movement->target.reset();
 					}
+					return true;
 				});
 		}
 

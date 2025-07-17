@@ -8,8 +8,8 @@ namespace sw::game
 {
 	struct UnitComponent : public ecs::Component
 	{
-		math::Vector2u pos;
-		uint8_t actionPoints{};
+		math::Vector2u pos{};
+		uint8_t actionPoints{1};
 		bool block = false;
 	};
 }

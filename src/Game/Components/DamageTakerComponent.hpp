@@ -6,6 +6,6 @@ namespace sw::game
 {
 	struct DamageTakerComponent : public ecs::Component
 	{
-		uint32_t health{};
+		uint32_t health{1};
 	};
 }
