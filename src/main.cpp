@@ -1,7 +1,7 @@
+#include <Game/Interpreter.hpp>
 #include <IO/Commands/CreateMap.hpp>
 #include <IO/Commands/March.hpp>
-#include <IO/Commands/SpawnHunter.hpp>
-#include <IO/Commands/SpawnSwordsman.hpp>
+#include <IO/Commands/SpawnUnit.hpp>
 #include <IO/Events/MapCreated.hpp>
 #include <IO/Events/MarchEnded.hpp>
 #include <IO/Events/MarchStarted.hpp>
@@ -34,9 +34,15 @@ int main(int argc, char** argv)
 
 	std::cout << "Commands:\n";
 	io::CommandParser parser;
+
 	parser.add<io::CreateMap>([](auto command) { printDebug(std::cout, command); })
-		.add<io::SpawnSwordsman>([](auto command) { printDebug(std::cout, command); })
-		.add<io::SpawnHunter>([](auto command) { printDebug(std::cout, command); })
+		.add<io::SpawnUnit<scheme::UnitType::Swordsman>>(
+			[](auto command)
+			{
+				printDebug(std::cout, command);
+				make_shared<game::Unit>(command.Type, std::move(command.attributes));
+			})
+		.add<io::SpawnUnit<scheme::UnitType::Hunter>>([](auto command) { printDebug(std::cout, command); })
 		.add<io::March>([](auto command) { printDebug(std::cout, command); });
 
 	parser.parse(file);

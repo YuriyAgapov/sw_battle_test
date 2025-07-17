@@ -1,5 +1,7 @@
 #pragma once
 
+#include "CommandTraits.hpp"
+
 #include <cstdint>
 #include <iosfwd>
 
@@ -7,8 +9,6 @@ namespace sw::io
 {
 	struct SpawnSwordsman
 	{
-		constexpr static const char* Name = "SPAWN_SWORDSMAN";
-
 		uint32_t unitId{};
 		uint32_t x{};
 		uint32_t y{};
@@ -23,6 +23,15 @@ namespace sw::io
 			visitor.visit("y", y);
 			visitor.visit("hp", hp);
 			visitor.visit("strength", strength);
+		}
+	};
+
+	template<>
+	struct CommandTraits<SpawnSwordsman>
+	{
+		static constexpr const char* getName()
+		{
+			return "SPAWN_SWORDSMAN";
 		}
 	};
 }

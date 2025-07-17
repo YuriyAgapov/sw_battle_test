@@ -1,9 +1,9 @@
 #pragma once
 
 #include "details/CommandParserVisitor.hpp"
+#include "IO/Commands/CommandTraits.hpp"
 
 #include <functional>
-#include <sstream>
 #include <string>
 
 namespace sw::io
@@ -17,7 +17,7 @@ namespace sw::io
 		template <class TCommandData>
 		CommandParser& add(std::function<void(TCommandData)> handler)
 		{
-			std::string commandName = TCommandData::Name;
+			std::string commandName = CommandTraits<TCommandData>::getName();
 			auto [it, inserted] = _commands.emplace(
 				commandName,
 				[handler = std::move(handler)](std::istream& stream)

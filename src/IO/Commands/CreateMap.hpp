@@ -1,5 +1,7 @@
 #pragma once
 
+#include "CommandTraits.hpp"
+
 #include <cstdint>
 #include <iosfwd>
 
@@ -7,8 +9,6 @@ namespace sw::io
 {
 	struct CreateMap
 	{
-		constexpr static const char* Name = "CREATE_MAP";
-
 		uint32_t width{};
 		uint32_t height{};
 
@@ -17,6 +17,15 @@ namespace sw::io
 		{
 			visitor.visit("width", width);
 			visitor.visit("height", height);
+		}
+	};
+
+	template<>
+	struct CommandTraits<CreateMap>
+	{
+		static constexpr const char* getName()
+		{
+			return "CREATE_MAP";
 		}
 	};
 }
