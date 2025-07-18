@@ -1,3 +1,5 @@
+#include "Game/Events/SetMovementTargetEvent.hpp"
+
 #include <ECS/Context.hpp>
 #include <Game/Components/WeaponComponent.hpp>
 #include <Game/Events/SetMovementBoundsEvent.hpp>
@@ -50,29 +52,29 @@ int main(int argc, char** argv)
 	io::CommandParser parser;
 	parser
 		.add<io::CreateMap>(
-			[context](auto command)
+			[context](auto data)
 			{
-				context->getDispatcher() << game::SetMovementBoundsEvent{command.width, command.height};
-				printDebug(std::cout, command);
+				context->getDispatcher() << game::SetMovementBoundsEvent{data.width, data.height};
+				printDebug(std::cout, data);
 			})
 		.add<io::SpawnSwordsman>(
-			[context](auto command)
+			[context](auto data)
 			{
-				context->getDispatcher() << game::SpawnSwordsmanUnitEvent(std::move(command));
-				printDebug(std::cout, command);
+				context->getDispatcher() << game::SpawnSwordsmanUnitEvent(std::move(data));
+				printDebug(std::cout, data);
 			})
 		.add<io::SpawnHunter>(
-			[context](auto command)
+			[context](auto data)
 			{
-				context->getDispatcher() << game::SpawnHunterUnitEvent(std::move(command));
-				printDebug(std::cout, command);
+				context->getDispatcher() << game::SpawnHunterUnitEvent(std::move(data));
+				printDebug(std::cout, data);
 			})
 		.add<io::March>(
-			[context](auto command)
+			[context](auto data)
 			{
-				context->getDispatcher() << game::SetMovementTargetEvent{
-																		 command.unitId, math::Vector2u{command.targetX, command.targetY}};
-				printDebug(std::cout, command);
+				const math::Vector2u pos{data.targetX, data.targetY};
+				context->getDispatcher() << game::SetMovementTargetEvent{data.unitId, pos};
+				printDebug(std::cout, data);
 			});
 
 	parser.parse(file);

@@ -6,6 +6,7 @@
 #include "Game/Components/WeaponComponent.hpp"
 #include "Game/Events/SpawnUnitEvent.hpp"
 
+#include <ECS/Context.hpp>
 #include <IO/Events/UnitSpawned.hpp>
 #include <IO/System/EventLog.hpp>
 
@@ -26,7 +27,7 @@ namespace sw::game
 	}
 
 	SpawnUnitSystem::SpawnUnitSystem(const std::shared_ptr<ecs::Context>& context) :
-			context(context)
+			System(context)
 	{
 		context->getDispatcher().subscribe<SpawnSwordsmanUnitEvent>(
 			[context](const SpawnSwordsmanUnitEvent& event)
