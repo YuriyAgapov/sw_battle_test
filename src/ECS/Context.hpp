@@ -22,12 +22,12 @@ namespace sw::ecs
 
 		virtual ~Context();
 
-		Entity& addEntity();
+		Entity& addEntity(const uint32_t entityId);
 
 		template <typename ... ComponentType>
-		Entity& addEntity()
+		Entity& addEntity(const uint32_t entityId)
 		{
-			auto& entity = addEntity();
+			auto& entity = addEntity(entityId);
 			(addComponent<ComponentType>(entity),...);
 			return entity;
 		}
@@ -37,6 +37,15 @@ namespace sw::ecs
 		void clear();
 
 		void advance();
+
+		void addSystem(std::unique_ptr<System> system);
+
+		const EntityMap& getEntities() const;
+		const ComponentMap& getComponents() const;
+
+		EventDispatcher& getDispatcher();
+
+		uint32_t getTickCount() const;
 
 		template <typename ComponentType, typename... Args>
 		std::shared_ptr<ComponentType> addComponent(Entity& entity, Args... args)
@@ -85,13 +94,6 @@ namespace sw::ecs
 			return true;
 		}
 
-		void addSystem(std::unique_ptr<System> system);
-
-		const EntityMap& getEntities() const;
-		const ComponentMap& getComponents() const;
-
-		EventDispatcher& getDispatcher();
-
 	private:
 		static ComponentIndex makeIndex(const uint32_t entityId, const size_t typeId)
 		{
@@ -111,7 +113,6 @@ namespace sw::ecs
 		ComponentMap components;
 		std::vector<std::unique_ptr<System>> systems;
 		EventDispatcher eventDispatcher;
-
-		uint32_t nextEntityId = 0;
+		uint32_t tickCount = 0;
 	};
 }

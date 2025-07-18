@@ -4,8 +4,8 @@
 #include "ECS/System.hpp"
 #include "Game/Components/MovementComponent.hpp"
 #include "Game/Components/UnitComponent.hpp"
-#include "Game/Events/MovementTargetEvent.hpp"
-#include "Game/Events/SetMovementEvent.hpp"
+#include "Game/Events/SetMovementTargetEvent.hpp"
+#include "Game/Events/SetMovementActiveEvent.hpp"
 
 namespace sw::game
 {
@@ -15,16 +15,16 @@ namespace sw::game
 		MovementSystem(const std::shared_ptr<ecs::Context>& context) :
 				context(context)
 		{
-			context->getDispatcher().subscribe<SetMovementEvent>(
-				[this](const SetMovementEvent& event)
+			context->getDispatcher().subscribe<SetMovementActiveEvent>(
+				[this](const SetMovementActiveEvent& event)
 				{
 					auto movement = this->context->getComponent<MovementComponent>(event.causerId);
 					movement->active = event.active;
 				});
-			context->getDispatcher().subscribe<MovementTargetEvent>(
-				[this](const MovementTargetEvent& event)
+			context->getDispatcher().subscribe<SetMovementTargetEvent>(
+				[this](const SetMovementTargetEvent& event)
 				{
-					auto movement = this->context->getComponent<MovementComponent>(event.causerId);
+					auto movement = this->context->getComponent<MovementComponent>(event.entityId);
 					movement->target = event.target;
 				});
 		}

@@ -6,10 +6,9 @@ namespace sw::ecs
 {
 	Context::~Context() {}
 
-	Entity& Context::addEntity()
+	Entity& Context::addEntity(const uint32_t entityId)
 	{
-		++nextEntityId;
-		auto iter = entities.emplace(nextEntityId, Entity{nextEntityId, {}});
+		auto iter = entities.emplace(entityId, Entity{entityId, {}});
 		assert(iter.second);
 
 		return iter.first->second;
@@ -27,7 +26,7 @@ namespace sw::ecs
 		entities.clear();
 		components.clear();
 		systems.clear();
-		nextEntityId = 0;
+		tickCount = 0;
 	}
 
 	void Context::advance()
@@ -60,16 +59,13 @@ namespace sw::ecs
 				}
 				return entity.deleteLater;
 			});
+
+		++tickCount;
 	}
 
 	void Context::addSystem(std::unique_ptr<System> system)
 	{
 		systems.emplace_back(std::move(system));
-	}
-
-	EventDispatcher& Context::getDispatcher()
-	{
-		return eventDispatcher;
 	}
 
 	const std::unordered_map<uint32_t, Entity>& Context::getEntities() const
@@ -80,5 +76,15 @@ namespace sw::ecs
 	const Context::ComponentMap& Context::getComponents() const
 	{
 		return components;
+	}
+
+	EventDispatcher& Context::getDispatcher()
+	{
+		return eventDispatcher;
+	}
+
+	uint32_t Context::getTickCount() const
+	{
+		return tickCount;
 	}
 }

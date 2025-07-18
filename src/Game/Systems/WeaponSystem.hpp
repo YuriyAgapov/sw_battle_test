@@ -5,7 +5,7 @@
 #include "Game/Components/WeaponComponent.hpp"
 #include "Game/Events/DamageEvent.hpp"
 
-#include <Game/Events/UseWeaponEvent.hpp>
+#include <Game/Events/ActivateWeaponEvent.hpp>
 
 namespace sw::game
 {
@@ -15,8 +15,8 @@ namespace sw::game
 		WeaponSystem(const std::shared_ptr<ecs::Context>& context) :
 				context(context)
 		{
-			context->getDispatcher().subscribe<UseWeaponEvent>([this](const UseWeaponEvent& weaponEvent)
-															   { UseWeapon(weaponEvent); });
+			context->getDispatcher().subscribe<ActivateWeaponEvent>([this](const ActivateWeaponEvent& weaponEvent)
+															   { ActivateWeapon(weaponEvent); });
 		}
 
 		void advance() final
@@ -40,7 +40,7 @@ namespace sw::game
 		}
 
 	private:
-		void UseWeapon(const UseWeaponEvent& weaponEvent)
+		void ActivateWeapon(const ActivateWeaponEvent& weaponEvent)
 		{
 			auto weaponComponent = context->getComponent<WeaponComponent>(weaponEvent.causerId);
 			auto weaponIter = weaponComponent->weapons.find(weaponEvent.weaponId);

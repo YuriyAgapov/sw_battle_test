@@ -16,9 +16,11 @@ namespace sw::game
 		uint32_t minRange{};
 		uint32_t maxRange{};
 		DamageType type = DamageType::None;
-		uint32_t targetId = InvalidId;
 		std::unordered_set<UnitType> canDamage;
+		uint32_t targetId = InvalidId;
 	};
+
+	using WeaponMap = std::unordered_map<uint32_t, game::Weapon>;
 
 	struct WeaponComponent : public ecs::Component
 	{

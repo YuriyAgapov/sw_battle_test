@@ -1,15 +1,16 @@
 #pragma once
 
 #include "Common.hpp"
-#include "Math/Vector2D.hpp"
 
 #include <cstdint>
 
 namespace sw::game
 {
-	struct MovementTargetEvent
+	// singleshot
+	struct ActivateWeaponEvent
 	{
 		uint32_t causerId = InvalidId;
-		math::Vector2u target;
+		uint32_t targetId = InvalidId;
+		uint32_t weaponId = InvalidId;
 	};
 }

@@ -5,8 +5,8 @@
 #include "Game/Components/DamageTakerComponent.hpp"
 #include "Game/Components/MovementComponent.hpp"
 #include "Game/Components/UnitComponent.hpp"
-#include "Game/Events/SetMovementEvent.hpp"
-#include "Game/Events/UseWeaponEvent.hpp"
+#include "Game/Events/SetMovementActiveEvent.hpp"
+#include "Game/Events/ActivateWeaponEvent.hpp"
 
 #include <Game/Components/WeaponComponent.hpp>
 
@@ -31,13 +31,13 @@ namespace sw::game
 							case BehaviourPriorityType::Attack:
 								if (DoAttack(entity, unit->pos))
 								{
-									context->getDispatcher() << SetMovementEvent{entity.id, false};
+									context->getDispatcher() << SetMovementActiveEvent{entity.id, false};
 									return true;
 								}
 							case BehaviourPriorityType::Movement:
 								if (movement->target)
 								{
-									context->getDispatcher() << SetMovementEvent{entity.id, true};
+									context->getDispatcher() << SetMovementActiveEvent{entity.id, true};
 									return true;
 								}
 								break;
@@ -58,7 +58,7 @@ namespace sw::game
 				if (const uint32_t targetId = findTarget(pos, weapon); targetId != InvalidId)
 				{
 					// use weapon and return
-					context->getDispatcher() << UseWeaponEvent{entity.id, targetId, weaponId};
+					context->getDispatcher() << ActivateWeaponEvent{entity.id, targetId, weaponId};
 					return true;
 				}
 			}
