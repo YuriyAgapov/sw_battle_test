@@ -6,9 +6,8 @@
 
 namespace sw::game
 {
-	struct SetMovementActiveEvent
+	struct DeathEvent
 	{
-		uint32_t causerId = InvalidId;
-		bool active = true;
+		uint32_t entityId = InvalidId;
 	};
 }

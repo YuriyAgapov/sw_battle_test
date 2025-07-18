@@ -5,7 +5,11 @@
 #include "Game/Components/MovementComponent.hpp"
 #include "Game/Components/UnitComponent.hpp"
 #include "Game/Events/SetMovementTargetEvent.hpp"
-#include "Game/Events/SetMovementActiveEvent.hpp"
+
+#include <IO/System/EventLog.hpp>
+
+#include <IO/Events/MarchStarted.hpp>
+#include <IO/Events/UnitMoved.hpp>
 
 namespace sw::game
 {
@@ -15,24 +19,20 @@ namespace sw::game
 		MovementSystem(const std::shared_ptr<ecs::Context>& context) :
 				context(context)
 		{
-			context->getDispatcher().subscribe<SetMovementActiveEvent>(
-				[this](const SetMovementActiveEvent& event)
-				{
-					auto movement = this->context->getComponent<MovementComponent>(event.causerId);
-					movement->active = event.active;
-				});
 			context->getDispatcher().subscribe<SetMovementTargetEvent>(
 				[this](const SetMovementTargetEvent& event)
 				{
 					auto movement = this->context->getComponent<MovementComponent>(event.entityId);
 					movement->target = event.target;
+
+					EventLog::log(this->context->getTickCount(), io::MarchStarted{event.entityId, event.target.x, event.target.y});
 				});
 		}
 
 		void advance() final
 		{
 			context->for_each<UnitComponent, MovementComponent>(
-				[](auto entity, auto unit, auto movement)
+				[this](ecs::Entity& entity, auto unit, auto movement)
 				{
 					if (!movement->canMove())
 					{
@@ -47,6 +47,8 @@ namespace sw::game
 									math::round<math::Vector2d>(target),
 									movement->speed)
 									.template to<math::Vector2u>();
+
+					EventLog::log(context->getTickCount(), io::UnitMoved{entity.id, unit->pos.x, unit->pos.y});
 
 					// coplete way if arrived
 					if (unit->pos == target)

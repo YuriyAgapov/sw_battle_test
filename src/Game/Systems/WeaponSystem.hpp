@@ -5,8 +5,6 @@
 #include "Game/Components/WeaponComponent.hpp"
 #include "Game/Events/DamageEvent.hpp"
 
-#include <Game/Events/ActivateWeaponEvent.hpp>
-
 namespace sw::game
 {
 	struct WeaponSystem : public ecs::System
@@ -15,14 +13,12 @@ namespace sw::game
 		WeaponSystem(const std::shared_ptr<ecs::Context>& context) :
 				context(context)
 		{
-			context->getDispatcher().subscribe<ActivateWeaponEvent>([this](const ActivateWeaponEvent& weaponEvent)
-															   { ActivateWeapon(weaponEvent); });
 		}
 
 		void advance() final
 		{
 			context->for_each<WeaponComponent>(
-				[this](auto entity, auto weaponComponent)
+				[this](ecs::Entity& entity, auto weaponComponent)
 				{
 					for (auto& [weaponId, weapon] : weaponComponent->weapons)
 					{
@@ -40,16 +36,6 @@ namespace sw::game
 		}
 
 	private:
-		void ActivateWeapon(const ActivateWeaponEvent& weaponEvent)
-		{
-			auto weaponComponent = context->getComponent<WeaponComponent>(weaponEvent.causerId);
-			auto weaponIter = weaponComponent->weapons.find(weaponEvent.weaponId);
-			if (weaponIter != weaponComponent->weapons.end())
-			{
-				weaponIter->second.targetId = weaponEvent.targetId;
-			}
-		}
-
 		std::shared_ptr<ecs::Context> context;
 	};
 }

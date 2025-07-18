@@ -5,8 +5,6 @@
 #include "Game/Components/DamageTakerComponent.hpp"
 #include "Game/Components/MovementComponent.hpp"
 #include "Game/Components/UnitComponent.hpp"
-#include "Game/Events/SetMovementActiveEvent.hpp"
-#include "Game/Events/ActivateWeaponEvent.hpp"
 
 #include <Game/Components/WeaponComponent.hpp>
 
@@ -22,7 +20,7 @@ namespace sw::game
 		void advance() final
 		{
 			context->for_each<UnitComponent, MovementComponent>(
-				[this](auto entity, auto unit, auto movement)
+				[this](ecs::Entity& entity, auto unit, auto movement)
 				{
 					for (const auto priority : unit->priorityOrder)
 					{
@@ -31,13 +29,13 @@ namespace sw::game
 							case BehaviourPriorityType::Attack:
 								if (DoAttack(entity, unit->pos))
 								{
-									context->getDispatcher() << SetMovementActiveEvent{entity.id, false};
+									movement->active = false;
 									return true;
 								}
 							case BehaviourPriorityType::Movement:
 								if (movement->target)
 								{
-									context->getDispatcher() << SetMovementActiveEvent{entity.id, true};
+									movement->active = true;
 									return true;
 								}
 								break;
@@ -53,26 +51,25 @@ namespace sw::game
 			auto weaponComponent = context->getComponent<WeaponComponent>(entity.id);
 
 			// find sutable weapon
-			for (const auto& [weaponId, weapon] : weaponComponent->weapons)
+			for (auto& [weaponId, weapon] : weaponComponent->weapons)
 			{
-				if (const uint32_t targetId = findTarget(pos, weapon); targetId != InvalidId)
+				if (const uint32_t targetId = findTarget(entity, pos, weapon); targetId != InvalidId)
 				{
-					// use weapon and return
-					context->getDispatcher() << ActivateWeaponEvent{entity.id, targetId, weaponId};
+					weapon.targetId = targetId;
 					return true;
 				}
 			}
 			return false;
 		}
 
-		inline uint32_t findTarget(const math::Vector2u& pos, const Weapon& weapon) const
+		inline uint32_t findTarget(const ecs::Entity& self, const math::Vector2u& pos, const Weapon& weapon) const
 		{
 			uint32_t targetId = InvalidId;
 			context->for_each<UnitComponent, DamageTakerComponent>(
-				[&targetId, pos, weapon](auto entity, auto unit, auto damageTaker)
+				[self, &targetId, pos, weapon](ecs::Entity& entity, auto unit, auto damageTaker)
 				{
 					// target have health and can be damaged by with sort of weapon
-					if (damageTaker->health == 0 || !weapon.canDamage.contains(unit->type))
+					if (self.id == entity.id || damageTaker->health == 0 || !weapon.canDamage.contains(unit->type))
 					{
 						return true;
 					}

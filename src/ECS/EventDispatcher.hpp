@@ -61,14 +61,15 @@ namespace sw::ecs
 				dispatchers.emplace_back(
 					[channel]()
 					{
-						for (const auto& event : channel->events)
+						// move events, any events generated while current slice processing will be delayed to the next tick
+						std::vector<TEventType> events = std::move(channel->events);
+						for (const auto& event : events)
 						{
 							for (const auto& handler : channel->handlers)
 							{
 								handler(event);
 							}
 						}
-						channel->events.clear();
 					});
 				channelPtr = channel;
 			}

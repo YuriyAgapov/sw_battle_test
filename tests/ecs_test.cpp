@@ -71,7 +71,7 @@ TEST_F(EcsTest, forEachSimple)
 
 	std::vector<std::shared_ptr<TestCompA>> comps;
 	context->for_each<TestCompA>(
-		[&comps](auto entity, auto comp)
+		[&comps](ecs::Entity& entity, auto comp)
 		{
 			//...
 			comps.push_back(comp);
@@ -89,21 +89,21 @@ TEST_F(EcsTest, forEachSeveral)
 
 	uint32_t aCount = 0;
 	context->for_each<TestCompA>(
-		[&aCount](auto entity, auto comp)
+		[&aCount](ecs::Entity& entity, auto comp)
 		{
 			++aCount;
 			return true;
 		});
 	uint32_t bCount = 0;
 	context->for_each<TestCompB>(
-		[&bCount](auto entity, auto comp)
+		[&bCount](ecs::Entity& entity, auto comp)
 		{
 			++bCount;
 			return true;
 		});
 	uint32_t abCount = 0;
 	context->for_each<TestCompA, TestCompB>(
-		[&abCount](auto entity, auto compA, auto compB)
+		[&abCount](ecs::Entity& entity, auto compA, auto compB)
 		{
 			++abCount;
 			return true;

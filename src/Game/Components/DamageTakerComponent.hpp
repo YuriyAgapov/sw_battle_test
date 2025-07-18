@@ -8,10 +8,5 @@ namespace sw::game
 	{
 		uint32_t health{1};
 		uint32_t maxHealth{1};
-
-		DamageTakerComponent(const uint32_t maxHealth) :
-				health(maxHealth),
-				maxHealth(maxHealth)
-		{}
 	};
 }

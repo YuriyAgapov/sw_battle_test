@@ -73,7 +73,7 @@ namespace sw::ecs
 		template <typename... ComponentTypes, typename Function>
 		bool for_each(Function&& function)
 		{
-			for (const auto& [entityId, entity] : entities)
+			for (auto& [entityId, entity] : entities)
 			{
 				// collect components by type
 				auto componentsTuple = getComponents<ComponentTypes...>(entityId);
@@ -82,10 +82,10 @@ namespace sw::ecs
 				if ((... && std::get<std::shared_ptr<ComponentTypes>>(componentsTuple)))
 				{
 					// prepend entity as first arg
-					auto args = std::tuple_cat(std::tie(entity), componentsTuple);
+					//auto args = std::tuple_cat(std::forward_as_tuple(entity), componentsTuple);
 
 					// call handler
-					if (!std::apply(function, args))
+					if (!std::apply(function, std::tuple_cat(std::forward_as_tuple(entity), componentsTuple)))
 					{
 						return false;
 					}

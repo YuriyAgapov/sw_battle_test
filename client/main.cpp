@@ -1,8 +1,10 @@
 #include <ECS/Context.hpp>
 #include <Game/Components/WeaponComponent.hpp>
 #include <Game/Events/SetMovementBoundsEvent.hpp>
+#include <Game/Events/SpawnUnitEvent.hpp>
 #include <Game/Systems/DamageSystem.hpp>
 #include <Game/Systems/MovementSystem.hpp>
+#include <Game/Systems/SpawnUnitSystem.hpp>
 #include <Game/Systems/UnitControlSystem.hpp>
 #include <Game/Systems/WeaponSystem.hpp>
 #include <IO/Commands/CreateMap.hpp>
@@ -37,15 +39,12 @@ int main(int argc, char** argv)
 		throw std::runtime_error("Error: File not found - " + std::string(argv[1]));
 	}
 
-	// Code for example...
-
-	EventLog eventLog;
-
 	auto context = std::make_shared<ecs::Context>();
-	context->addSystem(std::make_unique<game::MovementSystem>(context));
-	context->addSystem(std::make_unique<game::DamageSystem>(context));
+	context->addSystem(std::make_unique<game::SpawnUnitSystem>(context));
 	context->addSystem(std::make_unique<game::UnitControlSystem>(context));
 	context->addSystem(std::make_unique<game::WeaponSystem>(context));
+	context->addSystem(std::make_unique<game::DamageSystem>(context));
+	context->addSystem(std::make_unique<game::MovementSystem>(context));
 
 	std::cout << "Commands:\n";
 	io::CommandParser parser;
@@ -57,27 +56,17 @@ int main(int argc, char** argv)
 				printDebug(std::cout, command);
 			})
 		.add<io::SpawnSwordsman>(
-			[context, &eventLog](auto command)
+			[context](auto command)
 			{
-				auto entity = context->addEntity(command.unitId);
-				auto weaponry = context->addComponent<game::WeaponComponent>(entity);
-				weaponry->weapons = game::WeaponMap{
-					{1u,
-					 game::Weapon{
-								  command.strength,
-						 0,
-						 1,
-						 game::DamageType::Melee,
-						 std::unordered_set<game::UnitType>{game::UnitType::Ground}}}};
-				auto unit = context->addComponent<game::UnitComponent>(entity);
-				unit->type = game::UnitType::Ground;
-				unit->pos = math::Vector2u{command.x, command.y};
-				context->addComponent<game::DamageTakerComponent>(entity, command.hp);
+				context->getDispatcher() << game::SpawnSwordsmanUnitEvent(std::move(command));
 				printDebug(std::cout, command);
-
-				eventLog.log(context->getTickCount(), io::UnitSpawned{command.unitId, "Swordsman", command.x, command.y});
 			})
-		.add<io::SpawnHunter>([](auto command) { printDebug(std::cout, command); })
+		.add<io::SpawnHunter>(
+			[context](auto command)
+			{
+				context->getDispatcher() << game::SpawnHunterUnitEvent(std::move(command));
+				printDebug(std::cout, command);
+			})
 		.add<io::March>(
 			[context](auto command)
 			{
@@ -88,11 +77,22 @@ int main(int argc, char** argv)
 
 	parser.parse(file);
 
-	uint32_t iterationLimit = 1000;
-	while (!context->getEntities().empty() && context->getTickCount() < iterationLimit)
+	// force dispatch spawn events
+	context->getDispatcher().dispatchAll();
+
+	constexpr uint32_t tickLimit = 1000;
+	while (!context->getEntities().empty())
 	{
 		context->advance();
+
+		if (context->getTickCount() >= tickLimit)
+		{
+			std::cout << "Simulation interupted: Reached tick limit\n";
+			break;
+		}
 	}
+
+	std::cout << "Simulation ended on " << context->getTickCount() << " turn\n";
 
 	// std::cout << "\n\nEvents:\n";
 
