@@ -4,7 +4,7 @@
 
 namespace sw::game
 {
-	struct MovementSystem : public ecs::System
+	class MovementSystem : public ecs::System
 	{
 	public:
 		explicit MovementSystem(const std::shared_ptr<ecs::Context>& context);

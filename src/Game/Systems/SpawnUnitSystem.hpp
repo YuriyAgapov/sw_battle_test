@@ -4,7 +4,7 @@
 
 namespace sw::game
 {
-	struct SpawnUnitSystem : public ecs::System
+	class SpawnUnitSystem : public ecs::System
 	{
 	public:
 		explicit SpawnUnitSystem(const std::shared_ptr<ecs::Context>& context);

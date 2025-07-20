@@ -12,7 +12,7 @@ namespace sw
 		template <class TEvent>
 		static void log(uint64_t tick, TEvent&& event)
 		{
-			std::cout << "[" << tick << "] " << TEvent::Name << " ";
+			std::cout << "[" << tick << "] " << std::remove_reference_t<TEvent>::Name << " ";
 			PrintFieldVisitor visitor(std::cout);
 			event.visit(visitor);
 			std::cout << std::endl;

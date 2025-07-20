@@ -1,113 +1,26 @@
-#include "Game/Events/SetMovementTargetEvent.hpp"
+#include <Game/GameApp.hpp>
 
-#include <ECS/Context.hpp>
-#include <Game/Components/GridComponent.hpp>
-#include <Game/Components/WeaponComponent.hpp>
-#include <Game/Events/SetMovementBoundsEvent.hpp>
-#include <Game/Events/SpawnUnitEvent.hpp>
-#include <Game/Systems/DamageSystem.hpp>
-#include <Game/Systems/MovementSystem.hpp>
-#include <Game/Systems/SpawnUnitSystem.hpp>
-#include <Game/Systems/AISystem.hpp>
-#include <Game/Systems/WeaponSystem.hpp>
-#include <Game/Systems/VisibilitySystem.hpp>
-#include <IO/Commands/CreateMap.hpp>
-#include <IO/Commands/March.hpp>
-#include <IO/Commands/SpawnHunter.hpp>
-#include <IO/Commands/SpawnSwordsman.hpp>
-#include <IO/Events/MapCreated.hpp>
-#include <IO/Events/MarchEnded.hpp>
-#include <IO/Events/MarchStarted.hpp>
-#include <IO/Events/UnitAttacked.hpp>
-#include <IO/Events/UnitDied.hpp>
-#include <IO/Events/UnitMoved.hpp>
-#include <IO/Events/UnitSpawned.hpp>
-#include <IO/System/CommandParser.hpp>
-#include <IO/System/EventLog.hpp>
-#include <IO/System/PrintDebug.hpp>
-#include <fstream>
-#include <iostream>
+using namespace sw;
 
 int main(int argc, char** argv)
 {
-	using namespace sw;
-
 	if (argc != 2)
 	{
 		throw std::runtime_error("Error: No file specified in command line argument");
 	}
 
-	std::ifstream file(argv[1]);
-	if (!file)
+	const std::string fileName(argv[1]);
+
+	// make game
+	game::GameApp app;
+	if (app.loadFromFile(fileName))
 	{
-		throw std::runtime_error("Error: File not found - " + std::string(argv[1]));
+		app.exec(1000);
 	}
-
-	// make game context
-	auto context = std::make_shared<ecs::Context>();
-
-	// eval game scenario
-	std::cout << "Commands:\n";
-	io::CommandParser parser;
-	parser
-		.add<io::CreateMap>(
-			[&context](auto data)
-			{
-				// recreate context if needed
-				context->clear();
-
-				// init singletone first
-				auto grid = context->addSingletoneComponent<game::GridComponent>();
-				grid->bounds = math::Rect2(data.width, data.height);
-
-				// init systems
-				context->addSystem(std::make_unique<game::VisibilitySystem>(context));
-				context->addSystem(std::make_unique<game::SpawnUnitSystem>(context));
-				context->addSystem(std::make_unique<game::AISystem>(context));
-				context->addSystem(std::make_unique<game::WeaponSystem>(context));
-				context->addSystem(std::make_unique<game::DamageSystem>(context));
-				context->addSystem(std::make_unique<game::MovementSystem>(context));
-
-				EventLog::log(context->getTickCount(), io::MapCreated{data.width, data.height});
-			})
-		.add<io::SpawnSwordsman>(
-			[context](auto data)
-			{
-				context->getDispatcher() << game::SpawnSwordsmanUnitEvent(std::move(data));
-				printDebug(std::cout, data);
-			})
-		.add<io::SpawnHunter>(
-			[context](auto data)
-			{
-				context->getDispatcher() << game::SpawnHunterUnitEvent(std::move(data));
-				printDebug(std::cout, data);
-			})
-		.add<io::March>(
-			[context](auto data)
-			{
-				const math::Vector2 pos{data.targetX, data.targetY};
-				context->getDispatcher() << game::SetMovementTargetEvent{data.unitId, pos};
-				printDebug(std::cout, data);
-			});
-
-	parser.parse(file);
-
-	// force dispatch spawn events
-	context->getDispatcher().dispatchAll();
-
-	constexpr uint32_t tickLimit = 1000;
-	while (!context->getEntities().empty())
+	else
 	{
-		context->advance();
-
-		if (context->getTickCount() >= tickLimit)
-		{
-			std::cout << "Simulation interupted: Reached tick limit\n";
-			break;
-		}
+		throw std::runtime_error("Failed to load commands from file - " + fileName);
 	}
-
-	std::cout << "Simulation ended on " << context->getTickCount() << " turn\n";
 
 	// std::cout << "\n\nEvents:\n";
 

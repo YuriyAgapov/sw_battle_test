@@ -51,7 +51,9 @@ TEST_F(EcsTest, AddComponent)
 	auto addedComp = context->addComponent<TestCompA>(1);
 
 	for (auto& [_, comp] : context->getComponents())
+	{
 		EXPECT_EQ(addedComp, comp);
+	}
 }
 
 TEST_F(EcsTest, getComponent)
@@ -160,6 +162,38 @@ TEST_F(EcsTest, dispatchEvents)
 	EXPECT_EQ(eventCount, 1);
 }
 
+TEST_F(EcsTest, eventsOrder)
+{
+	ecs::EventDispatcher& dispatcher = context->getDispatcher();
+
+	std::vector<int8_t> eventsOrder;
+	dispatcher.subscribe<int8_t>([&eventsOrder](const auto&) { eventsOrder.emplace_back(1); });
+	dispatcher.subscribe<int16_t>([&eventsOrder](const auto&) { eventsOrder.emplace_back(2); });
+	dispatcher.subscribe<int32_t>([&eventsOrder](const auto&) { eventsOrder.emplace_back(3); });
+
+	dispatcher << int8_t{} << int32_t{} << int16_t{};
+	dispatcher.dispatchAll();
+	const std::vector<int8_t> expectedOrder{1, 3, 2};
+	EXPECT_EQ(eventsOrder, expectedOrder);
+}
+
+TEST_F(EcsTest, nestedEvents)
+{
+	ecs::EventDispatcher& dispatcher = context->getDispatcher();
+
+	std::vector<int8_t> eventsOrder;
+	dispatcher.subscribe<int8_t>(
+		[&eventsOrder, &dispatcher](const auto&)
+		{
+			eventsOrder.emplace_back(1);
+			dispatcher << int16_t{};
+		});
+	dispatcher.subscribe<int16_t>([&eventsOrder](const auto&) { eventsOrder.emplace_back(2); });
+	dispatcher << int8_t{};
+	dispatcher.dispatchAll();
+	const std::vector<int8_t> expectedOrder{1, 2};
+	EXPECT_EQ(eventsOrder, expectedOrder);
+}
 
 TEST_F(EcsTest, singletoneComponent)
 {

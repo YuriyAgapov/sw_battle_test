@@ -40,6 +40,10 @@ namespace sw::game
 			if (auto iter = tiles.find(pos); iter != tiles.end())
 			{
 				iter->second.erase(id);
+				if (iter->second.empty())
+				{
+					tiles.erase(iter);
+				}
 			}
 		}
 

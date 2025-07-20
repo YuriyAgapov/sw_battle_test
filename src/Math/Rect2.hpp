@@ -20,6 +20,12 @@ namespace sw::math
 				max(width, height)
 		{}
 
+		bool isValid() const
+		{
+			const math::Vector2 diff = max - min;
+			return diff.x > 0 && diff.y > 0;
+		}
+
 		/**
 		 * @brief Checks if the given position is inside the rectangle (inclusive).
 		 *

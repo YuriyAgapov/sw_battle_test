@@ -7,15 +7,15 @@
 #include <Game/Components/ViewerComponent.hpp>
 #include <Game/Components/VisibleComponent.hpp>
 #include <Game/Components/WeaponComponent.hpp>
-#include <Game/Events/SetMovementBoundsEvent.hpp>
-#include <Game/Events/SetMovementTargetEvent.hpp>
-#include <Game/Events/SpawnUnitEvent.hpp>
+#include <Game/GameApp.hpp>
 #include <Game/Systems/AISystem.hpp>
 #include <Game/Systems/DamageSystem.hpp>
 #include <Game/Systems/MovementSystem.hpp>
 #include <Game/Systems/SpawnUnitSystem.hpp>
 #include <Game/Systems/VisibilitySystem.hpp>
 #include <Game/Systems/WeaponSystem.hpp>
+#include <IO/Commands/CreateMap.hpp>
+#include <IO/Commands/March.hpp>
 #include <IO/Commands/SpawnSwordsman.hpp>
 #include <gtest/gtest.h>
 
@@ -26,29 +26,19 @@ using namespace sw::game;
 class GameTest : public testing::Test
 {
 protected:
-	void SetUp() override
+	void SetUp() final
 	{
-		context = std::make_shared<Context>();
-
-		// init singletone first
-		auto grid = context->addSingletoneComponent<GridComponent>();
-		grid->bounds = math::Rect2(10, 10);
-
-		// init systems
-		context->addSystem(std::make_unique<SpawnUnitSystem>(context));
-		context->addSystem(std::make_unique<VisibilitySystem>(context));
-		context->addSystem(std::make_unique<AISystem>(context));
-		context->addSystem(std::make_unique<WeaponSystem>(context));
-		context->addSystem(std::make_unique<DamageSystem>(context));
-		context->addSystem(std::make_unique<MovementSystem>(context));
+		context = app.getContext();
+		context->getDispatcher() << io::CreateMap{10, 10};
 	}
 
-	void TearDown() override
+	void TearDown() final
 	{
-		context.reset();
+		app.clear();
 	}
 
-	std::shared_ptr<Context> context;
+	game::GameApp app;
+	std::shared_ptr<ecs::Context> context;
 };
 
 TEST_F(GameTest, spawnSwordsman)
@@ -56,7 +46,7 @@ TEST_F(GameTest, spawnSwordsman)
 	uint32_t unitId = 1;
 	uint32_t hp = 2;
 	uint32_t damage = 3;
-	context->getDispatcher() << SpawnSwordsmanUnitEvent(io::SpawnSwordsman{unitId, 5, 5, hp, damage});
+	context->getDispatcher() << io::SpawnSwordsman{unitId, 5, 5, hp, damage};
 	context->advance();
 
 	auto visible = context->getComponent<VisibleComponent>(unitId);
@@ -94,8 +84,8 @@ TEST_F(GameTest, movementSystem)
 	uint32_t unitId = 1;
 	uint32_t hp = 2;
 	uint32_t damage = 3;
-	context->getDispatcher() << SpawnSwordsmanUnitEvent(io::SpawnSwordsman{unitId, 0, 0, hp, damage});
-	context->getDispatcher() << SetMovementTargetEvent{unitId, {5, 2}};
+	context->getDispatcher() << io::SpawnSwordsman{unitId, 0, 0, hp, damage};
+	context->getDispatcher() << io::March{unitId, 5, 2};
 	context->getDispatcher().dispatchAll();
 
 	auto movement = context->getComponent<MovementComponent>(unitId);
@@ -109,4 +99,41 @@ TEST_F(GameTest, movementSystem)
 	}
 	const std::vector<math::Vector2> expectedPath = {{0, 0}, {1, 0}, {2, 0}, {3, 1}, {4, 1}, {5, 2}};
 	EXPECT_EQ(actualPath, expectedPath);
+}
+
+TEST_F(GameTest, visibilitySystem)
+{
+	uint32_t unitA = 1;
+	uint32_t unitB = 2;
+	uint32_t hp = 999;
+	uint32_t damage = 1;
+	context->getDispatcher() << io::SpawnSwordsman{unitA, 1, 1, hp, damage};
+	context->getDispatcher() << io::SpawnSwordsman{unitB, 1, 2, hp, damage};
+	context->getDispatcher().dispatchAll();
+	context->advance();
+
+	auto viewerA = context->getComponent<ViewerComponent>(unitA);
+	auto viewerB = context->getComponent<ViewerComponent>(unitB);
+
+	EXPECT_EQ(viewerA->visibleMapping.get(math::Vector2{1, 2}), (std::unordered_set<uint32_t>{unitB}));
+	EXPECT_EQ(viewerB->visibleMapping.get(math::Vector2{1, 1}), (std::unordered_set<uint32_t>{unitA}));
+}
+
+TEST_F(GameTest, damageSystem)
+{
+	uint32_t unitA = 1;
+	uint32_t unitB = 2;
+	uint32_t hp = 999;
+	uint32_t damageA = 10;
+	uint32_t damageB = 20;
+	context->getDispatcher() << io::SpawnSwordsman{unitA, 1, 1, hp, damageA};
+	context->getDispatcher() << io::SpawnSwordsman{unitB, 1, 2, hp, damageB};
+	context->getDispatcher().dispatchAll();
+	context->advance();
+
+	auto damageTakerA = context->getComponent<DamageTakerComponent>(unitA);
+	auto damageTakerB = context->getComponent<DamageTakerComponent>(unitB);
+
+	EXPECT_EQ(damageTakerA->health, hp - damageB);
+	EXPECT_EQ(damageTakerB->health, hp - damageA);
 }

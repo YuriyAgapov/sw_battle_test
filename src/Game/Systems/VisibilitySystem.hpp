@@ -4,7 +4,7 @@
 
 namespace sw::game
 {
-	struct VisibilitySystem : public ecs::System
+	class VisibilitySystem : public ecs::System
 	{
 	public:
 		explicit VisibilitySystem(const std::shared_ptr<ecs::Context>& context);

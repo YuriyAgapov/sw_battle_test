@@ -3,48 +3,48 @@
 #include "Debug.hpp"
 #include "Game/Components/BehaviourComponent.hpp"
 #include "Game/Components/DamageTakerComponent.hpp"
-#include "Game/Components/GridComponent.hpp"
 #include "Game/Components/MovementComponent.hpp"
 #include "Game/Components/ViewerComponent.hpp"
 #include "Game/Components/WeaponComponent.hpp"
-#include "Game/Events/SetMovementTargetEvent.hpp"
 #include "Math/Algo.hpp"
 
 #include <ECS/Context.hpp>
+#include <IO/Commands/March.hpp>
 #include <IO/Events/MarchEnded.hpp>
 #include <IO/Events/MarchStarted.hpp>
-#include <IO/System/EventLog.hpp>
 
 namespace sw::game
 {
-	static bool isValidTarget(const std::shared_ptr<ecs::Context>& context, const uint32_t entityId, const Weapon& weapon)
+	static bool isValidTarget(
+		const std::shared_ptr<ecs::Context>& context, const uint32_t entityId, const Weapon& weapon)
 	{
 		auto [damageTaker, movement] = context->getComponents<DamageTakerComponent, MovementComponent>(entityId);
 		if (!damageTaker || !movement)
+		{
 			return false;
+		}
 
 		return damageTaker->health > 0 && weapon.canDamage.contains(movement->type);
-
 	}
 
 	AISystem::AISystem(const std::shared_ptr<ecs::Context>& context) :
 			System(context)
-			, grid(context->getSingletoneComponent<GridComponent>())
 	{
 		debug::check(context, "invalid context");
 
-		context->getDispatcher().subscribe<SetMovementTargetEvent>(
-			[this](const SetMovementTargetEvent& event)
+		context->getDispatcher().subscribe<io::March>(
+			[context](const io::March& event)
 			{
-				if (!grid->bounds.contains(event.target))
-					throw std::runtime_error("Failed to set movement target, point out of bounds");
+				const math::Vector2 target{event.targetX, event.targetY};
 
-				auto behaviour = this->context->getComponent<BehaviourComponent>(event.entityId);
-				behaviour->target = event.target;
+				debug::checkPosition(context, target);
 
-				EventLog::log(
-					this->context->getTickCount(),
-					io::MarchStarted{event.entityId, event.target.getX(), event.target.getY()});
+				auto [behaviour, movement]
+					= context->getComponents<BehaviourComponent, MovementComponent>(event.unitId);
+				behaviour->target = target;
+
+				context->getDispatcher() << io::MarchStarted{
+															 event.unitId, movement->pos.getX(), movement->pos.getY(), event.targetX, event.targetY};
 			});
 	}
 
@@ -76,9 +76,7 @@ namespace sw::game
 									movement->velocity = {};
 
 									// report to log
-									EventLog::log(
-										context->getTickCount(),
-										io::MarchEnded{entityId, movement->pos.getX(), movement->pos.getY()});
+									context->getDispatcher() << io::MarchEnded{entityId, movement->pos.getX(), movement->pos.getY()};
 								}
 								else
 								{
@@ -121,7 +119,7 @@ namespace sw::game
 
 		auto viewer = context->getComponent<ViewerComponent>(selfId);
 
-		if (weapon.weaponType== WeaponType::Melee)
+		if (weapon.weaponType == WeaponType::Melee)
 		{
 			// search nearby in area
 			math::foreachRect(

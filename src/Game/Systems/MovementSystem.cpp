@@ -3,13 +3,11 @@
 #include "Debug.hpp"
 #include "Game/Components/GridComponent.hpp"
 #include "Game/Components/MovementComponent.hpp"
-#include "Game/Events/SetMovementBoundsEvent.hpp"
 
 #include <ECS/Context.hpp>
-#include <IO/Events/MarchEnded.hpp>
-#include <IO/Events/MarchStarted.hpp>
+#include <IO/Commands/CreateMap.hpp>
+#include <IO/Events/MapCreated.hpp>
 #include <IO/Events/UnitMoved.hpp>
-#include <IO/System/EventLog.hpp>
 
 namespace sw::game
 {
@@ -18,11 +16,15 @@ namespace sw::game
 	{
 		debug::check(context, "invalid context");
 
-		context->getDispatcher().subscribe<SetMovementBoundsEvent>(
-			[this](const SetMovementBoundsEvent& event)
+		context->getDispatcher().subscribe<io::CreateMap>(
+			[context](const io::CreateMap& event)
 			{
-				auto grid = this->context->getSingletoneComponent<GridComponent>();
-				grid->bounds = event.bounds;
+				auto grid = context->getSingletoneComponent<GridComponent>();
+				grid->bounds = math::Rect2(event.width, event.height);
+				if (!grid->bounds.isValid())
+					throw std::runtime_error("Failed to CreateMap, bounds is invalid");
+
+				context->getDispatcher() << io::MapCreated{event.width, event.height};
 			});
 	}
 
@@ -40,7 +42,7 @@ namespace sw::game
 				movement->pos = movement->pos + movement->velocity;
 				grid->mapping.add(entityId, movement->pos);
 
-				EventLog::log(context->getTickCount(), io::UnitMoved{entityId, movement->pos.getX(), movement->pos.getY()});
+				context->getDispatcher() << io::UnitMoved{entityId, movement->pos.getX(), movement->pos.getY()};
 
 				return true;
 			});

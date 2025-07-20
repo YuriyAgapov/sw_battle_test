@@ -7,7 +7,7 @@ namespace sw::game
 
 	class DamageEvent;
 
-	struct DamageSystem : public ecs::System
+	class DamageSystem : public ecs::System
 	{
 	public:
 		explicit DamageSystem(const std::shared_ptr<ecs::Context>& context);

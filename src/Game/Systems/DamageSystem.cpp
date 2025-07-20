@@ -4,12 +4,10 @@
 #include "Game/Components/DamageTakerComponent.hpp"
 #include "Game/Components/MovementComponent.hpp"
 #include "Game/Events/DamageEvent.hpp"
-#include "Game/Events/DeathEvent.hpp"
 
 #include <ECS/Context.hpp>
 #include <IO/Events/UnitAttacked.hpp>
 #include <IO/Events/UnitDied.hpp>
-#include <IO/System/EventLog.hpp>
 
 namespace sw::game
 {
@@ -21,15 +19,15 @@ namespace sw::game
 		return movement ? movement->type : DispositionType::Ground;
 	}
 
-	DamageSystem::DamageSystem(const std::shared_ptr<ecs::Context>& context) :
-			System(context)
+	DamageSystem::DamageSystem(const std::shared_ptr<ecs::Context>& inContext) :
+			System(inContext)
 	{
 		debug::check(context, "invalid context");
 
 		context->getDispatcher().subscribe<DamageEvent>(
 			[this](const DamageEvent& damageEvent)
 			{
-				auto damageTaker = this->context->getComponent<DamageTakerComponent>(damageEvent.targetId);
+				auto damageTaker = context->getComponent<DamageTakerComponent>(damageEvent.targetId);
 
 				// skip if already died
 				if (damageTaker->health == 0)
@@ -46,9 +44,7 @@ namespace sw::game
 						const uint32_t damage = calcDamage(damageEvent);
 						damageTaker->health -= std::min(damageTaker->health, damage);
 
-						EventLog::log(
-							this->context->getTickCount(),
-							io::UnitAttacked{damageEvent.causerId, damageEvent.targetId, damage, damageTaker->health});
+						context->getDispatcher() << io::UnitAttacked{damageEvent.causerId, damageEvent.targetId, damage, damageTaker->health};
 					}
 					break;
 
@@ -73,9 +69,7 @@ namespace sw::game
 					//point for improvement: death/revive rules
 					context->removeEntity(entityId);
 
-					context->getDispatcher() << DeathEvent{entityId};
-
-					EventLog::log(context->getTickCount(), io::UnitDied{entityId});
+					context->getDispatcher() << io::UnitDied{entityId};
 				}
 				return true;
 			});

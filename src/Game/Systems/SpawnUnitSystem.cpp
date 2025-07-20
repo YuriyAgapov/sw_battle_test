@@ -7,12 +7,12 @@
 #include "Game/Components/ViewerComponent.hpp"
 #include "Game/Components/VisibleComponent.hpp"
 #include "Game/Components/WeaponComponent.hpp"
-#include "Game/Events/SpawnUnitEvent.hpp"
 
 #include <ECS/Context.hpp>
 #include <Game/Components/GridComponent.hpp>
+#include <IO/Commands/SpawnHunter.hpp>
+#include <IO/Commands/SpawnSwordsman.hpp>
 #include <IO/Events/UnitSpawned.hpp>
-#include <IO/System/EventLog.hpp>
 
 namespace sw::game
 {
@@ -36,6 +36,9 @@ namespace sw::game
 		damageTaker->health = data.hp;
 		damageTaker->maxHealth = data.hp;
 
+		auto grid = context->getSingletoneComponent<game::GridComponent>();
+		grid->mapping.add(data.unitId, pos);
+
 		return data.unitId;
 	}
 
@@ -44,17 +47,17 @@ namespace sw::game
 	{
 		debug::check(context, "invalid context");
 
-		context->getDispatcher().subscribe<SpawnSwordsmanUnitEvent>(
-			[context](const SpawnSwordsmanUnitEvent& event)
+		context->getDispatcher().subscribe<io::SpawnSwordsman>(
+			[context](const io::SpawnSwordsman& event)
 			{
-				auto swordsman = createBaseUnit(context, event.data);
+				auto swordsman = createBaseUnit(context, event);
 				auto weaponry = context->addComponent<game::WeaponComponent>(swordsman);
 				weaponry->weapons = game::WeaponMap{
 													{Weapon::swordId,
 					 game::Weapon{
-								  event.data.strength,
-						 0,//min
-						 1,//max
+								  event.strength,
+						 0,	 //min
+						 1,	 //max
 						 game::DamageType::Regular,
 						 game::WeaponType::Melee,
 						 std::unordered_set<game::DispositionType>{game::DispositionType::Ground}}}};
@@ -62,39 +65,36 @@ namespace sw::game
 				auto viewer = context->addComponent<game::ViewerComponent>(swordsman);
 				viewer->range = 1;
 
-				EventLog::log(
-					context->getTickCount(),
-					io::UnitSpawned{event.data.unitId, "Swordsman", event.data.x, event.data.y});
+				context->getDispatcher() << io::UnitSpawned{event.unitId, "Swordsman", event.x, event.y};
 			});
-		context->getDispatcher().subscribe<SpawnHunterUnitEvent>(
-			[context](const SpawnHunterUnitEvent& event)
+		context->getDispatcher().subscribe<io::SpawnHunter>(
+			[context](const io::SpawnHunter& event)
 			{
-				auto hunter = createBaseUnit(context, event.data);
+				auto hunter = createBaseUnit(context, event);
 				auto weaponry = context->addComponent<game::WeaponComponent>(hunter);
 				weaponry->weapons = game::WeaponMap{
 													{Weapon::swordId,
 					 game::Weapon{
-								  event.data.strength,
-						 0,//min
-						 1,//max
+								  event.strength,
+						 0,	 //min
+						 1,	 //max
 						 game::DamageType::Regular,
 						 game::WeaponType::Melee,
 						 std::unordered_set<game::DispositionType>{game::DispositionType::Ground}}},
 					{Weapon::bowId,
 					 game::Weapon{
-								  event.data.agility,
-						 2,//min
-						 event.data.range,
+								  event.agility,
+						 2,	 //min
+						 event.range,
 						 game::DamageType::Regular,
 						 game::WeaponType::Range,
 						 std::unordered_set<game::DispositionType>{
 																   game::DispositionType::Ground, game::DispositionType::Air}}}};
 
 				auto viewer = context->addComponent<game::ViewerComponent>(hunter);
-				viewer->range = event.data.range;
+				viewer->range = event.range;
 
-				EventLog::log(
-					context->getTickCount(), io::UnitSpawned{event.data.unitId, "Hunter", event.data.x, event.data.y});
+				context->getDispatcher() << io::UnitSpawned{event.unitId, "Hunter", event.x, event.y};
 			});
 	}
 
