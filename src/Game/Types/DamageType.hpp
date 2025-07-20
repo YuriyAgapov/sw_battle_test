@@ -8,8 +8,7 @@ namespace sw::game
 	enum class DamageType : uint8_t
 	{
 		None,
-		Melee,
-		Range,
+		Regular,
 		Heal,
 	};
 }
