@@ -30,7 +30,7 @@ namespace sw::game
 					[this, grid, viewer, selfId = entityId](const math::Vector2& point)
 					{
 						if (!grid->bounds.contains(point))
-							return false;
+							return true;
 
 						for (const uint32_t entityId : grid->mapping.get(point))
 						{

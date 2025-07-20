@@ -1,3 +1,5 @@
+#include "game_test_fixture.hpp"
+
 #include <ECS/Context.hpp>
 #include <ECS/System.hpp>
 #include <Game/Components/BehaviourComponent.hpp>
@@ -16,30 +18,13 @@
 #include <Game/Systems/WeaponSystem.hpp>
 #include <IO/Commands/CreateMap.hpp>
 #include <IO/Commands/March.hpp>
+#include <IO/Commands/SpawnHunter.hpp>
 #include <IO/Commands/SpawnSwordsman.hpp>
 #include <gtest/gtest.h>
 
 using namespace sw;
 using namespace sw::ecs;
 using namespace sw::game;
-
-class GameTest : public testing::Test
-{
-protected:
-	void SetUp() final
-	{
-		context = app.getContext();
-		context->getDispatcher() << io::CreateMap{10, 10};
-	}
-
-	void TearDown() final
-	{
-		app.clear();
-	}
-
-	game::GameApp app;
-	std::shared_ptr<ecs::Context> context;
-};
 
 TEST_F(GameTest, spawnSwordsman)
 {
@@ -71,12 +56,12 @@ TEST_F(GameTest, spawnSwordsman)
 	auto weapon = context->getComponent<WeaponComponent>(unitId);
 	EXPECT_TRUE(weapon);
 	EXPECT_EQ(weapon->weapons.size(), 1);
-	EXPECT_EQ(weapon->weapons[Weapon::swordId].damage, damage);
-	EXPECT_EQ(weapon->weapons[Weapon::swordId].minRange, 0);
-	EXPECT_EQ(weapon->weapons[Weapon::swordId].maxRange, 1);
-	EXPECT_EQ(weapon->weapons[Weapon::swordId].weaponType, WeaponType::Melee);
-	EXPECT_EQ(weapon->weapons[Weapon::swordId].damageType, DamageType::Regular);
-	EXPECT_EQ(weapon->weapons[Weapon::swordId].canDamage, std::unordered_set<DispositionType>{DispositionType::Ground});
+	EXPECT_EQ(weapon->weapons[0].damage, damage);
+	EXPECT_EQ(weapon->weapons[0].minRange, 0);
+	EXPECT_EQ(weapon->weapons[0].maxRange, 1);
+	EXPECT_EQ(weapon->weapons[0].weaponType, WeaponType::Melee);
+	EXPECT_EQ(weapon->weapons[0].damageType, DamageType::Regular);
+	EXPECT_EQ(weapon->weapons[0].canDamage, std::unordered_set<DispositionType>{DispositionType::Ground});
 }
 
 TEST_F(GameTest, movementSystem)
@@ -137,3 +122,4 @@ TEST_F(GameTest, damageSystem)
 	EXPECT_EQ(damageTakerA->health, hp - damageB);
 	EXPECT_EQ(damageTakerB->health, hp - damageA);
 }
+

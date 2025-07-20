@@ -1,3 +1,6 @@
+#include "Math/Algo.hpp"
+
+#include <Game/Components/ViewerComponent.hpp>
 #include <Game/GameApp.hpp>
 #include <IO/Events/MapCreated.hpp>
 #include <IO/Events/MarchEnded.hpp>
@@ -83,11 +86,32 @@ namespace sw::view
 			painter.setPen(Qt::NoPen);
 			for (const auto& [_, item] : items)
 			{
-				if (!item.endPos.isNull())
+				if (item.endPos)
 				{
 					painter.setBrush(Qt::gray);
-					painter.drawEllipse(sceneTransform.map(item.endPos + QPointF(0.5, 0.5)), 0.4 * sceneScale, 0.4 * sceneScale);
+					painter.drawEllipse(
+						sceneTransform.map(*item.endPos + QPointF(0.5, 0.5)), 0.4 * sceneScale, 0.4 * sceneScale);
 				}
+			}
+
+			// draw visible range
+			painter.setBrush(QBrush(QColor(0, 255, 0, 64)));
+			for (const auto& [id, item] : items)
+			{
+				auto viewer = context->getComponent<game::ViewerComponent>(id);
+				if (!viewer)
+				{
+					continue;
+				}
+				math::foreachRect(
+					math::Vector2{static_cast<int64_t>(item.pos.x()), static_cast<int64_t>(item.pos.y())},
+					viewer->range,
+					[this, &painter, item](const math::Vector2& point)
+					{
+						const QPointF topLeft = sceneTransform.map(toPointF(point.x, point.y));
+						painter.drawRect(QRectF(topLeft, QSizeF{1.0 * sceneScale, 1.0 * sceneScale}));
+						return true;
+					});
 			}
 
 			// unit layer
@@ -95,7 +119,8 @@ namespace sw::view
 			for (const auto& [_, item] : items)
 			{
 				painter.setBrush(styles[item.type]);
-				painter.drawEllipse(sceneTransform.map(item.pos + QPointF(0.5, 0.5)), 0.3 * sceneScale, 0.3 * sceneScale);
+				painter.drawEllipse(
+					sceneTransform.map(item.pos + QPointF(0.5, 0.5)), 0.3 * sceneScale, 0.3 * sceneScale);
 			}
 		}
 
@@ -144,7 +169,7 @@ namespace sw::view
 		{
 			std::string type;
 			QPointF pos;
-			QPointF endPos;
+			std::optional<QPointF> endPos;
 		};
 
 		std::unordered_map<uint32_t, Item> items;
@@ -155,8 +180,8 @@ class MainWindow : public QMainWindow
 {
 public:
 	MainWindow() :
-			GameViewWidget(new sw::view::GameViewWidget(app.getContext(), this))
-			, LogView(new QTextBrowser())
+			GameViewWidget(new sw::view::GameViewWidget(app.getContext(), this)),
+			LogView(new QTextBrowser())
 	{
 		setCentralWidget(GameViewWidget);
 
@@ -167,7 +192,8 @@ public:
 			this,
 			[this](bool)
 			{
-				const QString fileName = QFileDialog::getOpenFileName(this, tr("Select commands file"), qApp->applicationDirPath());
+				const QString fileName
+					= QFileDialog::getOpenFileName(this, tr("Select commands file"), qApp->applicationDirPath());
 				app.loadFromFile(fileName.toStdString());
 			});
 
@@ -200,39 +226,47 @@ private:
 	{
 		using namespace sw;
 		auto& dispatcher = app.getContext()->getDispatcher();
-		dispatcher.subscribe<io::MapCreated>([this](const io::MapCreated& event)
-														   { LogView->append(QString("MapCreated %1x%2").arg(event.width).arg(event.height));});
+		dispatcher.subscribe<io::MapCreated>(
+			[this](const io::MapCreated& event)
+			{ LogView->append(QString("MapCreated %1x%2").arg(event.width).arg(event.height)); });
 		dispatcher.subscribe<io::UnitSpawned>(
 			[this](const io::UnitSpawned& event)
 			{
-				LogView->append(QString("UnitSpawned id=%1, type=%2, x=%3, y=%4").arg(event.unitId).arg(event.unitType).arg(event.x).arg(event.y));
+				LogView->append(QString("UnitSpawned id=%1, type=%2, x=%3, y=%4")
+									.arg(event.unitId)
+									.arg(event.unitType)
+									.arg(event.x)
+									.arg(event.y));
 			});
 		dispatcher.subscribe<io::UnitMoved>(
 			[this](const io::UnitMoved& event)
-			{
-				LogView->append(QString("UnitMoved id=%1, x=%2, y=%3").arg(event.unitId).arg(event.x).arg(event.y));
-			});
+			{ LogView->append(QString("UnitMoved id=%1, x=%2, y=%3").arg(event.unitId).arg(event.x).arg(event.y)); });
 		dispatcher.subscribe<io::MarchStarted>(
 			[this](const io::MarchStarted& event)
 			{
-				LogView->append(QString("MarchStarted id=%1, x=%2, y=%3, targetX=%4, targetY=%5").arg(event.unitId).arg(event.x).arg(event.y).arg(event.targetX).arg(event.targetY));
+				LogView->append(QString("MarchStarted id=%1, x=%2, y=%3, targetX=%4, targetY=%5")
+									.arg(event.unitId)
+									.arg(event.x)
+									.arg(event.y)
+									.arg(event.targetX)
+									.arg(event.targetY));
 			});
 		dispatcher.subscribe<io::MarchEnded>(
 			[this](const io::MarchEnded& event)
-			{
-				LogView->append(QString("MarchEnded id=%1, x=%2, y=%3").arg(event.unitId).arg(event.x).arg(event.y));
-			});
+			{ LogView->append(QString("MarchEnded id=%1, x=%2, y=%3").arg(event.unitId).arg(event.x).arg(event.y)); });
 		dispatcher.subscribe<io::UnitAttacked>(
 			[this](const io::UnitAttacked& event)
 			{
-				LogView->append(QString("UnitAttacked attackerUnitId=%1, targetUnitId=%2, v=%3, targetHp=%4").arg(event.attackerUnitId).arg(event.targetUnitId).arg(event.damage).arg(event.targetHp));
+				LogView->append(QString("UnitAttacked attackerUnitId=%1, targetUnitId=%2, v=%3, targetHp=%4")
+									.arg(event.attackerUnitId)
+									.arg(event.targetUnitId)
+									.arg(event.damage)
+									.arg(event.targetHp));
 			});
-		dispatcher.subscribe<io::UnitDied>(
-			[this](const io::UnitDied& event)
-			{
-				LogView->append(QString("UnitDied id=%1").arg(event.unitId));
-			});
+		dispatcher.subscribe<io::UnitDied>([this](const io::UnitDied& event)
+										   { LogView->append(QString("UnitDied id=%1").arg(event.unitId)); });
 	}
+
 	sw::game::GameApp app;
 	sw::view::GameViewWidget* GameViewWidget;
 	QTextBrowser* LogView;

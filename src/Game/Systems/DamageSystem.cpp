@@ -27,10 +27,18 @@ namespace sw::game
 		context->getDispatcher().subscribe<DamageEvent>(
 			[this](const DamageEvent& damageEvent)
 			{
-				auto damageTaker = context->getComponent<DamageTakerComponent>(damageEvent.targetId);
+				auto causerDamageTaker = context->getComponent<DamageTakerComponent>(damageEvent.causerId);
+				// skip if causer died
+				if (causerDamageTaker->health == 0)
+				{
+					// interpret like the event was rolled back
+					return;
+				}
+
+				auto targetDamageTaker = context->getComponent<DamageTakerComponent>(damageEvent.targetId);
 
 				// skip if already died
-				if (damageTaker->health == 0)
+				if (targetDamageTaker->health == 0)
 				{
 					//point for improvement: rules to revive with heal
 					return;
@@ -42,15 +50,15 @@ namespace sw::game
 					case DamageType::Regular:
 					{
 						const uint32_t damage = calcDamage(damageEvent);
-						damageTaker->health -= std::min(damageTaker->health, damage);
+						targetDamageTaker->health -= std::min(targetDamageTaker->health, damage);
 
-						context->getDispatcher() << io::UnitAttacked{damageEvent.causerId, damageEvent.targetId, damage, damageTaker->health};
+						context->getDispatcher() << io::UnitAttacked{damageEvent.causerId, damageEvent.targetId, damage, targetDamageTaker->health};
 					}
 					break;
 
 					case DamageType::Heal:
-						damageTaker->health
-							= std::min(damageTaker->health + calcHeal(damageEvent), damageTaker->maxHealth);
+						targetDamageTaker->health
+							= std::min(targetDamageTaker->health + calcHeal(damageEvent), targetDamageTaker->maxHealth);
 
 						//todo: log heal
 						break;

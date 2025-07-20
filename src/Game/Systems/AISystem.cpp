@@ -3,6 +3,7 @@
 #include "Debug.hpp"
 #include "Game/Components/BehaviourComponent.hpp"
 #include "Game/Components/DamageTakerComponent.hpp"
+#include "Game/Components/GridComponent.hpp"
 #include "Game/Components/MovementComponent.hpp"
 #include "Game/Components/ViewerComponent.hpp"
 #include "Game/Components/WeaponComponent.hpp"
@@ -12,6 +13,7 @@
 #include <IO/Commands/March.hpp>
 #include <IO/Events/MarchEnded.hpp>
 #include <IO/Events/MarchStarted.hpp>
+#include <IO/Events/UnitDied.hpp>
 
 namespace sw::game
 {
@@ -45,6 +47,14 @@ namespace sw::game
 
 				context->getDispatcher() << io::MarchStarted{
 															 event.unitId, movement->pos.getX(), movement->pos.getY(), event.targetX, event.targetY};
+			});
+		context->getDispatcher().subscribe<io::UnitDied>(
+			[context](const io::UnitDied& event)
+			{
+				auto movement = context->getComponent<MovementComponent>(event.unitId);
+				auto grid = context->getSingletoneComponent<game::GridComponent>();
+				grid->mapping.remove(event.unitId, movement->pos);
+				context->removeEntity(event.unitId);
 			});
 	}
 
@@ -102,7 +112,7 @@ namespace sw::game
 		auto weaponComponent = context->getComponent<WeaponComponent>(entityId);
 
 		// find sutable weapon
-		for (auto& [weaponId, weapon] : weaponComponent->weapons)
+		for (auto& weapon : weaponComponent->weapons)
 		{
 			if (const uint32_t targetId = findTarget(entityId, pos, weapon); targetId != InvalidId)
 			{

@@ -20,7 +20,7 @@ namespace sw::game
 		context->for_each<WeaponComponent>(
 			[this](const uint32_t entityId, auto weaponComponent)
 			{
-				for (auto& [weaponId, weapon] : weaponComponent->weapons)
+				for (auto& weapon : weaponComponent->weapons)
 				{
 					if (weapon.targetId != InvalidId)
 					{

@@ -52,15 +52,13 @@ namespace sw::game
 			{
 				auto swordsman = createBaseUnit(context, event);
 				auto weaponry = context->addComponent<game::WeaponComponent>(swordsman);
-				weaponry->weapons = game::WeaponMap{
-													{Weapon::swordId,
-					 game::Weapon{
-								  event.strength,
-						 0,	 //min
-						 1,	 //max
-						 game::DamageType::Regular,
-						 game::WeaponType::Melee,
-						 std::unordered_set<game::DispositionType>{game::DispositionType::Ground}}}};
+				weaponry->weapons = {game::Weapon{
+												  event.strength,
+					0,	//min
+					1,	//max
+					game::DamageType::Regular,
+					game::WeaponType::Melee,
+					std::unordered_set<game::DispositionType>{game::DispositionType::Ground}}};
 
 				auto viewer = context->addComponent<game::ViewerComponent>(swordsman);
 				viewer->range = 1;
@@ -72,24 +70,22 @@ namespace sw::game
 			{
 				auto hunter = createBaseUnit(context, event);
 				auto weaponry = context->addComponent<game::WeaponComponent>(hunter);
-				weaponry->weapons = game::WeaponMap{
-													{Weapon::swordId,
-					 game::Weapon{
-								  event.strength,
-						 0,	 //min
-						 1,	 //max
-						 game::DamageType::Regular,
-						 game::WeaponType::Melee,
-						 std::unordered_set<game::DispositionType>{game::DispositionType::Ground}}},
-					{Weapon::bowId,
-					 game::Weapon{
-								  event.agility,
-						 2,	 //min
-						 event.range,
-						 game::DamageType::Regular,
-						 game::WeaponType::Range,
-						 std::unordered_set<game::DispositionType>{
-																   game::DispositionType::Ground, game::DispositionType::Air}}}};
+				weaponry->weapons
+					= {game::Weapon{
+									event.agility,
+						   2,  //min
+						   event.range,
+						   game::DamageType::Regular,
+						   game::WeaponType::Range,
+						   std::unordered_set<game::DispositionType>{
+																	 game::DispositionType::Ground, game::DispositionType::Air}},
+					   game::Weapon{
+									event.strength,
+						   0,  //min
+						   1,  //max
+						   game::DamageType::Regular,
+						   game::WeaponType::Melee,
+						   std::unordered_set<game::DispositionType>{game::DispositionType::Ground}}};
 
 				auto viewer = context->addComponent<game::ViewerComponent>(hunter);
 				viewer->range = event.range;

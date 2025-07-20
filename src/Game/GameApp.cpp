@@ -31,7 +31,7 @@ namespace sw::game
 		return !context->for_each<WeaponComponent, BehaviourComponent>(
 			[](const uint32_t entityId, auto weaponComponent, std::shared_ptr<BehaviourComponent> behaviour)
 			{
-				for (auto& [_, weapon] : weaponComponent->weapons)
+				for (const auto& weapon : weaponComponent->weapons)
 				{
 					if (weapon.targetId != InvalidId)
 					{
@@ -139,8 +139,8 @@ namespace sw::game
 
 		// init systems (order important)
 		// poi: introduce system dependency resolving (DAG)
-		context->addSystem(std::make_unique<game::VisibilitySystem>(context));
 		context->addSystem(std::make_unique<game::SpawnUnitSystem>(context));
+		context->addSystem(std::make_unique<game::VisibilitySystem>(context));
 		context->addSystem(std::make_unique<game::AISystem>(context));
 		context->addSystem(std::make_unique<game::WeaponSystem>(context));
 		context->addSystem(std::make_unique<game::DamageSystem>(context));
