@@ -1,14 +1,11 @@
 #pragma once
 
-#include "Common.hpp"
-
-#include <cstdint>
+#include <Math/Rect2.hpp>
 
 namespace sw::game
 {
 	struct SetMovementBoundsEvent
 	{
-		uint32_t w{};
-		uint32_t h{};
+		math::Rect2 bounds;
 	};
 }

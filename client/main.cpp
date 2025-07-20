@@ -1,14 +1,16 @@
 #include "Game/Events/SetMovementTargetEvent.hpp"
 
 #include <ECS/Context.hpp>
+#include <Game/Components/GridComponent.hpp>
 #include <Game/Components/WeaponComponent.hpp>
 #include <Game/Events/SetMovementBoundsEvent.hpp>
 #include <Game/Events/SpawnUnitEvent.hpp>
 #include <Game/Systems/DamageSystem.hpp>
 #include <Game/Systems/MovementSystem.hpp>
 #include <Game/Systems/SpawnUnitSystem.hpp>
-#include <Game/Systems/UnitControlSystem.hpp>
+#include <Game/Systems/AISystem.hpp>
 #include <Game/Systems/WeaponSystem.hpp>
+#include <Game/Systems/VisibilitySystem.hpp>
 #include <IO/Commands/CreateMap.hpp>
 #include <IO/Commands/March.hpp>
 #include <IO/Commands/SpawnHunter.hpp>
@@ -41,21 +43,32 @@ int main(int argc, char** argv)
 		throw std::runtime_error("Error: File not found - " + std::string(argv[1]));
 	}
 
+	// make game context
 	auto context = std::make_shared<ecs::Context>();
-	context->addSystem(std::make_unique<game::SpawnUnitSystem>(context));
-	context->addSystem(std::make_unique<game::UnitControlSystem>(context));
-	context->addSystem(std::make_unique<game::WeaponSystem>(context));
-	context->addSystem(std::make_unique<game::DamageSystem>(context));
-	context->addSystem(std::make_unique<game::MovementSystem>(context));
 
+	// eval game scenario
 	std::cout << "Commands:\n";
 	io::CommandParser parser;
 	parser
 		.add<io::CreateMap>(
-			[context](auto data)
+			[&context](auto data)
 			{
-				context->getDispatcher() << game::SetMovementBoundsEvent{data.width, data.height};
-				printDebug(std::cout, data);
+				// recreate context if needed
+				context->clear();
+
+				// init singletone first
+				auto grid = context->addSingletoneComponent<game::GridComponent>();
+				grid->bounds = math::Rect2(data.width, data.height);
+
+				// init systems
+				context->addSystem(std::make_unique<game::VisibilitySystem>(context));
+				context->addSystem(std::make_unique<game::SpawnUnitSystem>(context));
+				context->addSystem(std::make_unique<game::AISystem>(context));
+				context->addSystem(std::make_unique<game::WeaponSystem>(context));
+				context->addSystem(std::make_unique<game::DamageSystem>(context));
+				context->addSystem(std::make_unique<game::MovementSystem>(context));
+
+				EventLog::log(context->getTickCount(), io::MapCreated{data.width, data.height});
 			})
 		.add<io::SpawnSwordsman>(
 			[context](auto data)
@@ -72,7 +85,7 @@ int main(int argc, char** argv)
 		.add<io::March>(
 			[context](auto data)
 			{
-				const math::Vector2u pos{data.targetX, data.targetY};
+				const math::Vector2 pos{data.targetX, data.targetY};
 				context->getDispatcher() << game::SetMovementTargetEvent{data.unitId, pos};
 				printDebug(std::cout, data);
 			});

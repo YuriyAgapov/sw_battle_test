@@ -1,14 +1,14 @@
 #pragma once
 
-#include "Component.hpp"
-#include "ECS/EventDispatcher.hpp"
+#include "EventDispatcher.hpp"
 #include "ComponentIndex.hpp"
-#include "Entity.hpp"
 
 #include <assert.h>
 #include <memory>
 #include <unordered_map>
 #include <vector>
+#include <limits>
+#include <unordered_set>
 
 namespace sw::ecs
 {
@@ -17,22 +17,27 @@ namespace sw::ecs
 	class Context
 	{
 	public:
-		using EntityMap = std::unordered_map<uint32_t, Entity>;
-		using ComponentMap = std::unordered_map<ComponentIndex, std::shared_ptr<Component>>;
+		static constexpr uint32_t SingletoneId = std::numeric_limits<uint32_t>::max();
+
+		using EntitySet = std::unordered_set<uint32_t>;
+		using ComponentMap = std::unordered_map<ComponentIndex, std::shared_ptr<void>>;
 
 		virtual ~Context();
 
-		Entity& addEntity(const uint32_t entityId);
+		bool addEntity(const uint32_t entityId);
 
 		template <typename ... ComponentType>
-		Entity& addEntity(const uint32_t entityId)
+		bool addEntity(const uint32_t entityId)
 		{
-			auto& entity = addEntity(entityId);
-			(addComponent<ComponentType>(entity),...);
-			return entity;
+			if (!addEntity(entityId))
+				return false;
+			(addComponent<ComponentType>(entityId),...);
+			return true;
 		}
 
-		const Entity& getEntity(const uint32_t entityId) const;
+		bool hasEntity(const uint32_t entityId) const;
+
+		void removeEntity(const uint32_t entityId);
 
 		void clear();
 
@@ -40,7 +45,7 @@ namespace sw::ecs
 
 		void addSystem(std::unique_ptr<System> system);
 
-		const EntityMap& getEntities() const;
+		const EntitySet& getEntities() const;
 		const ComponentMap& getComponents() const;
 
 		EventDispatcher& getDispatcher();
@@ -48,12 +53,17 @@ namespace sw::ecs
 		uint32_t getTickCount() const;
 
 		template <typename ComponentType, typename... Args>
-		std::shared_ptr<ComponentType> addComponent(Entity& entity, Args... args)
+		std::shared_ptr<ComponentType> addComponent(const uint32_t entityId, Args... args)
 		{
 			auto component = std::make_shared<ComponentType>(args...);
-			component->id = makeIndex<ComponentType>(entity.id);
-			components.emplace(component->id, component);
-			return component;
+			auto pair = components.emplace(makeIndex<ComponentType>(entityId), component);
+			return pair.second ? component : nullptr;
+		}
+
+		template <typename ComponentType, typename... Args>
+		std::shared_ptr<ComponentType> addSingletoneComponent(Args... args)
+		{
+			return addComponent<ComponentType>(SingletoneId, args...);
 		}
 
 		template <typename ComponentType>
@@ -62,6 +72,13 @@ namespace sw::ecs
 			const ComponentIndex componentId = makeIndex<ComponentType>(entityId);
 			const auto compIter = components.find(componentId);
 			return compIter != components.end() ? std::static_pointer_cast<ComponentType>(compIter->second) : nullptr;
+		}
+
+		// returns singletone component
+		template <typename ComponentType>
+		std::shared_ptr<ComponentType> getSingletoneComponent() const
+		{
+			return getComponent<ComponentType>(SingletoneId);
 		}
 
 		template <typename... ComponentTypes>
@@ -73,19 +90,16 @@ namespace sw::ecs
 		template <typename... ComponentTypes, typename Function>
 		bool for_each(Function&& function)
 		{
-			for (auto& [entityId, entity] : entities)
+			for (const uint32_t entityId : entities)
 			{
 				// collect components by type
-				auto componentsTuple = getComponents<ComponentTypes...>(entityId);
+				auto components = getComponents<ComponentTypes...>(entityId);
 
 				// check compenents consistensy
-				if ((... && std::get<std::shared_ptr<ComponentTypes>>(componentsTuple)))
+				if ((... && std::get<std::shared_ptr<ComponentTypes>>(components)))
 				{
-					// prepend entity as first arg
-					//auto args = std::tuple_cat(std::forward_as_tuple(entity), componentsTuple);
-
 					// call handler
-					if (!std::apply(function, std::tuple_cat(std::forward_as_tuple(entity), componentsTuple)))
+					if (!std::apply(function, std::tuple_cat(std::tie(entityId), components)))
 					{
 						return false;
 					}
@@ -109,7 +123,8 @@ namespace sw::ecs
 			return entityId == index.enitityId;
 		}
 
-		EntityMap entities;
+		EntitySet entities;
+		EntitySet pendingKill;
 		ComponentMap components;
 		std::vector<std::unique_ptr<System>> systems;
 		EventDispatcher eventDispatcher;

@@ -1,8 +1,9 @@
 #include "MovementSystem.hpp"
 
+#include "Debug.hpp"
+#include "Game/Components/GridComponent.hpp"
 #include "Game/Components/MovementComponent.hpp"
-#include "Game/Components/UnitComponent.hpp"
-#include "Game/Events/SetMovementTargetEvent.hpp"
+#include "Game/Events/SetMovementBoundsEvent.hpp"
 
 #include <ECS/Context.hpp>
 #include <IO/Events/MarchEnded.hpp>
@@ -15,46 +16,32 @@ namespace sw::game
 	MovementSystem::MovementSystem(const std::shared_ptr<ecs::Context>& context) :
 			System(context)
 	{
-		context->getDispatcher().subscribe<SetMovementTargetEvent>(
-			[this](const SetMovementTargetEvent& event)
-			{
-				auto movement = this->context->getComponent<MovementComponent>(event.entityId);
-				movement->target = event.target;
+		debug::check(context, "invalid context");
 
-				EventLog::log(
-					this->context->getTickCount(), io::MarchStarted{event.entityId, event.target.x, event.target.y});
+		context->getDispatcher().subscribe<SetMovementBoundsEvent>(
+			[this](const SetMovementBoundsEvent& event)
+			{
+				auto grid = this->context->getSingletoneComponent<GridComponent>();
+				grid->bounds = event.bounds;
 			});
 	}
 
 	void MovementSystem::advance()
 	{
-		context->for_each<UnitComponent, MovementComponent>(
-			[this](ecs::Entity& entity, auto unit, auto movement)
+		context->for_each<MovementComponent>(
+			[this, grid = context->getSingletoneComponent<GridComponent>()](const uint32_t entityId, auto movement)
 			{
-				if (!movement->canMove())
+				if (movement->velocity.isZero())
 				{
 					return true;
 				}
 
-				// move by
-				const math::Vector2u target = *movement->target;
+				grid->mapping.remove(entityId, movement->pos);
+				movement->pos = movement->pos + movement->velocity;
+				grid->mapping.add(entityId, movement->pos);
 
-				unit->pos
-					= math::moveTo(
-						  math::round<math::Vector2d>(unit->pos), math::round<math::Vector2d>(target), movement->speed)
-						  .template to<math::Vector2u>();
+				EventLog::log(context->getTickCount(), io::UnitMoved{entityId, movement->pos.getX(), movement->pos.getY()});
 
-				// coplete way if arrived
-				if (unit->pos == target)
-				{
-					EventLog::log(context->getTickCount(), io::MarchEnded{entity.id, unit->pos.x, unit->pos.y});
-
-					movement->target.reset();
-				}
-				else
-				{
-					EventLog::log(context->getTickCount(), io::UnitMoved{entity.id, unit->pos.x, unit->pos.y});
-				}
 				return true;
 			});
 	}

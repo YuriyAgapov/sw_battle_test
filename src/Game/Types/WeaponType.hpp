@@ -5,11 +5,10 @@
 namespace sw::game
 {
 	// point of improvements: use dictionary from meta
-	enum class UnitType : uint8_t
+	enum class WeaponType : uint8_t
 	{
-		Stationary,
-		Underground,
-		Ground,
-		Flying,
+		None,
+		Melee,
+		Range,
 	};
 }

@@ -4,10 +4,10 @@
 
 using namespace sw;
 
-class TestCompA : public ecs::Component
+class TestCompA
 {};
 
-class TestCompB : public ecs::Component
+class TestCompB
 {};
 
 class EcsTest : public testing::Test
@@ -28,37 +28,47 @@ protected:
 
 TEST_F(EcsTest, AddEntity)
 {
-	auto& entity = context->addEntity(1);
-	auto comp = context->addComponent<TestCompA>(entity);
-	EXPECT_TRUE(context->getEntities().contains(entity.id));
-	EXPECT_TRUE(context->getComponents().contains(comp->id));
+	context->addEntity(1);
+	EXPECT_TRUE(context->hasEntity(1));
+	EXPECT_TRUE(context->getEntities().contains(1));
 }
 
 TEST_F(EcsTest, RemoveEntity)
 {
-	auto& entity = context->addEntity(1);
+	context->addEntity(1);
+	context->removeEntity(1);
+	// still actual
+	EXPECT_TRUE(context->hasEntity(1));
+
+	// advance and check
 	context->advance();
-	EXPECT_TRUE(context->getEntities().contains(entity.id));
-	entity.deleteLater = true;
-	context->advance();
-	EXPECT_FALSE(context->getEntities().contains(entity.id));
+	EXPECT_FALSE(context->hasEntity(1));
+}
+
+TEST_F(EcsTest, AddComponent)
+{
+	context->addEntity(1);
+	auto addedComp = context->addComponent<TestCompA>(1);
+
+	for (auto& [_, comp] : context->getComponents())
+		EXPECT_EQ(addedComp, comp);
 }
 
 TEST_F(EcsTest, getComponent)
 {
-	auto& entity = context->addEntity(1);
-	auto addedComp = context->addComponent<TestCompA>(entity);
-	auto foundComp = context->getComponent<TestCompA>(entity.id);
-	EXPECT_EQ(foundComp, addedComp);
+	context->addEntity(1);
+	auto addedComp = context->addComponent<TestCompA>(1);
+	auto foundComp = context->getComponent<TestCompA>(1);
+	EXPECT_EQ(addedComp, foundComp);
 }
 
 TEST_F(EcsTest, getComponents)
 {
-	auto& entity = context->addEntity(1);
-	auto comp1 = context->addComponent<TestCompA>(entity);
-	auto comp2 = context->addComponent<TestCompB>(entity);
+	context->addEntity(1);
+	auto comp1 = context->addComponent<TestCompA>(1);
+	auto comp2 = context->addComponent<TestCompB>(1);
 
-	auto [foundA, foundB] = context->getComponents<TestCompA, TestCompB>(entity.id);
+	auto [foundA, foundB] = context->getComponents<TestCompA, TestCompB>(1);
 
 	EXPECT_EQ(comp1, foundA);
 	EXPECT_EQ(comp2, foundB);
@@ -66,12 +76,12 @@ TEST_F(EcsTest, getComponents)
 
 TEST_F(EcsTest, forEachSimple)
 {
-	auto& entity = context->addEntity(1);
-	auto comp = context->addComponent<TestCompA>(entity);
+	context->addEntity(1);
+	auto comp = context->addComponent<TestCompA>(1);
 
 	std::vector<std::shared_ptr<TestCompA>> comps;
 	context->for_each<TestCompA>(
-		[&comps](ecs::Entity& entity, auto comp)
+		[&comps](const uint32_t entityId, auto comp)
 		{
 			//...
 			comps.push_back(comp);
@@ -79,6 +89,22 @@ TEST_F(EcsTest, forEachSimple)
 		});
 	EXPECT_EQ(comps.size(), 1);
 	EXPECT_EQ(comps[0], comp);
+}
+
+TEST_F(EcsTest, forEachBreak)
+{
+	context->addEntity<TestCompA>(1);
+	context->addEntity<TestCompA>(2);
+	context->addEntity<TestCompA>(3);
+
+	uint32_t counter = 0;
+	context->for_each<TestCompA>(
+		[&counter](const uint32_t entityId, auto comp)
+		{
+			++counter;
+			return counter != 2;
+		});
+	EXPECT_EQ(counter, 2);
 }
 
 TEST_F(EcsTest, forEachSeveral)
@@ -89,21 +115,21 @@ TEST_F(EcsTest, forEachSeveral)
 
 	uint32_t aCount = 0;
 	context->for_each<TestCompA>(
-		[&aCount](ecs::Entity& entity, auto comp)
+		[&aCount](const uint32_t entityId, auto comp)
 		{
 			++aCount;
 			return true;
 		});
 	uint32_t bCount = 0;
 	context->for_each<TestCompB>(
-		[&bCount](ecs::Entity& entity, auto comp)
+		[&bCount](const uint32_t entityId, auto comp)
 		{
 			++bCount;
 			return true;
 		});
 	uint32_t abCount = 0;
 	context->for_each<TestCompA, TestCompB>(
-		[&abCount](ecs::Entity& entity, auto compA, auto compB)
+		[&abCount](const uint32_t entityId, auto compA, auto compB)
 		{
 			++abCount;
 			return true;
@@ -132,4 +158,21 @@ TEST_F(EcsTest, dispatchEvents)
 	// enent queue is clear
 	context->advance();
 	EXPECT_EQ(eventCount, 1);
+}
+
+
+TEST_F(EcsTest, singletoneComponent)
+{
+	struct Singletone
+	{
+		uint32_t value = 0;
+	};
+
+	context->addSingletoneComponent<Singletone>(42);
+	EXPECT_EQ(context->addSingletoneComponent<Singletone>(73), nullptr);
+
+	EXPECT_TRUE(context->getEntities().empty());
+	EXPECT_EQ(context->getComponents().size(), 1);
+
+	EXPECT_EQ(context->getSingletoneComponent<Singletone>()->value, 42);
 }

@@ -6,19 +6,20 @@ namespace sw::ecs
 {
 	Context::~Context() {}
 
-	Entity& Context::addEntity(const uint32_t entityId)
+	bool Context::addEntity(const uint32_t entityId)
 	{
-		auto iter = entities.emplace(entityId, Entity{entityId, {}});
-		assert(iter.second);
-
-		return iter.first->second;
+		auto pair = entities.emplace(entityId);
+		return pair.second;
 	}
 
-	const Entity& Context::getEntity(const uint32_t entityId) const
+	bool Context::hasEntity(const uint32_t entityId) const
 	{
-		auto iter = entities.find(entityId);
-		assert(iter != entities.end());
-		return iter->second;
+		return entities.contains(entityId);
+	}
+
+	void Context::removeEntity(const uint32_t entityId)
+	{
+		pendingKill.emplace(entityId);
 	}
 
 	void Context::clear()
@@ -26,6 +27,7 @@ namespace sw::ecs
 		entities.clear();
 		components.clear();
 		systems.clear();
+		pendingKill.clear();
 		tickCount = 0;
 	}
 
@@ -41,25 +43,19 @@ namespace sw::ecs
 		eventDispatcher.dispatchAll();
 
 		// remove pending kill
-		std::erase_if(
-			entities,
-			[this](const auto& entityItem)
-			{
-				const Entity& entity = entityItem.second;
-				if (entity.deleteLater)
+		for (const uint32_t entityId : pendingKill)
+		{
+			// remove relatecd components
+			std::erase_if(
+				components,
+				[entityId](const auto& compItem)
 				{
-					// remove relatecd components
-					std::erase_if(
-						components,
-						[entityId = entity.id](const auto& compItem)
-						{
-							return IsOwner(entityId, compItem.first);
-						}
-					);
-				}
-				return entity.deleteLater;
-			});
-
+					// check component index
+					return IsOwner(entityId, compItem.first);
+				});
+			entities.erase(entityId);
+		}
+		pendingKill.clear();
 		++tickCount;
 	}
 
@@ -68,7 +64,7 @@ namespace sw::ecs
 		systems.emplace_back(std::move(system));
 	}
 
-	const std::unordered_map<uint32_t, Entity>& Context::getEntities() const
+	const Context::EntitySet& Context::getEntities() const
 	{
 		return entities;
 	}

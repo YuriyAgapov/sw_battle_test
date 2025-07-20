@@ -1,21 +1,14 @@
 #pragma once
 
-#include "ECS/Component.hpp"
-#include "Math/Vector2D.hpp"
-
-#include <optional>
+#include "Game/Types/DispositionType.hpp"
+#include "Math/Vector2.hpp"
 
 namespace sw::game
 {
-	struct MovementComponent : public ecs::Component
+	struct MovementComponent
 	{
-		bool active{true};
-		std::optional<math::Vector2u> target;
-		uint32_t speed{1};
-
-		bool canMove() const
-		{
-			return active && speed > 0 && target;
-		}
+		DispositionType type = DispositionType::Ground;
+		math::Vector2 pos{};
+		math::Vector2 velocity{};
 	};
 }

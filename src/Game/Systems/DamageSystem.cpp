@@ -1,7 +1,8 @@
 #include "DamageSystem.hpp"
 
+#include "Debug.hpp"
 #include "Game/Components/DamageTakerComponent.hpp"
-#include "Game/Components/UnitComponent.hpp"
+#include "Game/Components/MovementComponent.hpp"
 #include "Game/Events/DamageEvent.hpp"
 #include "Game/Events/DeathEvent.hpp"
 
@@ -12,9 +13,19 @@
 
 namespace sw::game
 {
+	static DispositionType getUnitType(const std::shared_ptr<ecs::Context>& context, const uint32_t entityId)
+	{
+		assert(context);
+
+		auto movement = context->getComponent<MovementComponent>(entityId);
+		return movement ? movement->type : DispositionType::Ground;
+	}
+
 	DamageSystem::DamageSystem(const std::shared_ptr<ecs::Context>& context) :
 			System(context)
 	{
+		debug::check(context, "invalid context");
+
 		context->getDispatcher().subscribe<DamageEvent>(
 			[this](const DamageEvent& damageEvent)
 			{
@@ -28,10 +39,9 @@ namespace sw::game
 				}
 
 				// handle damage
-				switch (damageEvent.type)
+				switch (damageEvent.damageType)
 				{
-					case DamageType::Melee:
-					case DamageType::Range:
+					case DamageType::Regular:
 					{
 						const uint32_t damage = calcDamage(damageEvent);
 						damageTaker->health -= std::min(damageTaker->health, damage);
@@ -56,16 +66,16 @@ namespace sw::game
 	void DamageSystem::advance()
 	{
 		context->for_each<DamageTakerComponent>(
-			[this](ecs::Entity& entity, auto damageTaker)
+			[this](const uint32_t entityId, auto damageTaker)
 			{
 				if (damageTaker->health == 0)
 				{
 					//point for improvement: death/revive rules
-					entity.deleteLater = true;
+					context->removeEntity(entityId);
 
-					context->getDispatcher() << DeathEvent{entity.id};
+					context->getDispatcher() << DeathEvent{entityId};
 
-					EventLog::log(context->getTickCount(), io::UnitDied{entity.id});
+					EventLog::log(context->getTickCount(), io::UnitDied{entityId});
 				}
 				return true;
 			});
@@ -76,11 +86,12 @@ namespace sw::game
 		// point for improvement: resist, crit, handling overdamage or other damage modifiers
 		uint32_t change = 0;
 
-		// raven case
-		if (damageEvent.type == DamageType::Range && getUnitType(damageEvent.causerId) == UnitType::Ground
-			&& getUnitType(damageEvent.targetId) == UnitType::Flying)
+		// reduce damage by the air untits from the ground based (raven case)
+		if (damageEvent.weaponType == WeaponType::Range
+			&& getUnitType(context, damageEvent.causerId) == DispositionType::Ground
+			&& getUnitType(context, damageEvent.targetId) == DispositionType::Air)
 		{
-			change += 1;
+			change -= 1;
 		}
 		return damageEvent.amount + change;
 	}
@@ -88,11 +99,5 @@ namespace sw::game
 	uint32_t DamageSystem::calcHeal(const DamageEvent& damageEvent) const
 	{
 		return damageEvent.amount;
-	}
-
-	UnitType DamageSystem::getUnitType(const uint32_t entityId) const
-	{
-		auto unit = context->getComponent<UnitComponent>(entityId);
-		return unit ? unit->type : UnitType::Ground;
 	}
 }

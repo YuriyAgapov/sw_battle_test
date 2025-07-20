@@ -1,10 +1,10 @@
 #pragma once
 
-#include "ECS/Component.hpp"
+#include <cstdint>
 
 namespace sw::game
 {
-	struct DamageTakerComponent : public ecs::Component
+	struct DamageTakerComponent
 	{
 		uint32_t health{1};
 		uint32_t maxHealth{1};
