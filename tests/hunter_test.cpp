@@ -1,6 +1,7 @@
 #include "game_test_fixture.hpp"
 
 #include <Game/Components/WeaponComponent.hpp>
+#include <Game/Events/DamageEvent.hpp>
 #include <IO/Commands/SpawnHunter.hpp>
 #include <IO/Commands/SpawnSwordsman.hpp>
 #include <gtest/gtest.h>
@@ -13,14 +14,24 @@ TEST_F(GameTest, hunterRanged)
 	uint32_t puppet = 2;
 	uint32_t hp = 999;
 	uint32_t damage = 1;
-	context->getDispatcher() << io::SpawnHunter{hunter, 1, 1, hp, damage, damage, 4};
-	context->getDispatcher() << io::SpawnSwordsman{puppet, 1, 4, hp, damage};
+
+	auto dispatcher = context->getDispatcher();
+	dispatcher << io::SpawnHunter{hunter, 1, 1, hp, damage, damage, 4};
+	dispatcher << io::SpawnSwordsman{puppet, 1, 4, hp, damage};
+
+	std::optional<game::DamageEvent> actualEvent;
+	dispatcher.subscribe<game::DamageEvent>(
+		[&actualEvent](const game::DamageEvent& event)
+		{
+			EXPECT_FALSE(actualEvent.has_value());
+			actualEvent = event;
+		});
+
 	context->getDispatcher().dispatchAll();
 	context->advance();
 
-	auto weaponComponent = context->getComponent<game::WeaponComponent>(hunter);
-	EXPECT_EQ(weaponComponent->weapons[0].targetId, puppet);
-	EXPECT_EQ(weaponComponent->weapons[1].targetId, InvalidId);
+	EXPECT_TRUE(actualEvent.has_value());
+	EXPECT_EQ(actualEvent->weaponType, game::WeaponType::Range);
 }
 
 TEST_F(GameTest, hunterMelee)
@@ -29,12 +40,22 @@ TEST_F(GameTest, hunterMelee)
 	uint32_t puppet = 2;
 	uint32_t hp = 999;
 	uint32_t damage = 1;
-	context->getDispatcher() << io::SpawnHunter{hunter, 1, 1, hp, damage, damage, 4};
-	context->getDispatcher() << io::SpawnSwordsman{puppet, 1, 4, hp, damage};
+
+	auto dispatcher = context->getDispatcher();
+	dispatcher << io::SpawnHunter{hunter, 1, 1, hp, damage, damage, 4};
+	dispatcher << io::SpawnSwordsman{puppet, 1, 2, hp, damage};
+
+	std::optional<game::DamageEvent> actualEvent;
+	dispatcher.subscribe<game::DamageEvent>(
+		[&actualEvent](const game::DamageEvent& event)
+		{
+			EXPECT_FALSE(actualEvent.has_value());
+			actualEvent = event;
+		});
+
 	context->getDispatcher().dispatchAll();
 	context->advance();
 
-	auto weaponComponent = context->getComponent<game::WeaponComponent>(hunter);
-	EXPECT_EQ(weaponComponent->weapons[1].targetId, puppet);
-	EXPECT_EQ(weaponComponent->weapons[0].targetId, InvalidId);
+	EXPECT_TRUE(actualEvent.has_value());
+	EXPECT_EQ(actualEvent->weaponType, game::WeaponType::Melee);
 }

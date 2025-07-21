@@ -13,14 +13,17 @@ namespace sw::math
 	 * @param radius The radius in cells (inclusive).
 	 * @param func The function called for each suitable cell.
 	 */
-	inline bool foreachCircle(const Vector2& center, const int64_t radius, std::function<bool (const Vector2&)> func)
+	inline bool foreachCircle(const Vector2& center, const int64_t minRadius, const int64_t maxRadius, std::function<bool (const Vector2&)> func)
 	{
-		const int64_t squaredRadius = radius * radius;
-		for (int64_t y = -radius; y <= radius; ++y)
+		const int64_t squaredMinRadius = minRadius * minRadius;
+		const int64_t squaredMaxRadius = maxRadius * maxRadius;
+
+		for (int64_t y = -maxRadius; y <= maxRadius; ++y)
 		{
-			for (int64_t x = -radius; x <= radius; ++x)
+			for (int64_t x = -maxRadius; x <= maxRadius; ++x)
 			{
-				if (x*x + y*y <= squaredRadius)
+				const double squaredDist = x*x + y*y;
+				if (squaredDist >= squaredMinRadius && squaredDist <= squaredMaxRadius)
 				{
 					if (!func(center + Vector2{x, y}))
 					{

@@ -154,19 +154,17 @@ namespace sw::game
 			// search nearby in range
 			math::foreachCircle(
 				pos,
+				weapon.minRange,
 				weapon.maxRange,
-				[viewer, &targetId, pos, minRange = weapon.minRange, weapon, this](const math::Vector2& point)
+				[viewer, &targetId, weapon, this](const math::Vector2& point)
 				{
-					if (math::length(pos - point) >= minRange)
+					for (const uint32_t entityId : viewer->visibleMapping.get(point))
 					{
-						for (const uint32_t entityId : viewer->visibleMapping.get(pos))
+						if (isValidTarget(context, entityId, weapon))
 						{
-							if (isValidTarget(context, entityId, weapon))
-							{
-								// store id and interrupt
-								targetId = entityId;
-								return false;
-							}
+							// store id and interrupt
+							targetId = entityId;
+							return false;
 						}
 					}
 					return true;

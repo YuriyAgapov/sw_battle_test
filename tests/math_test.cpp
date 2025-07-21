@@ -88,13 +88,13 @@ TEST(MathTest, foreachRect)
 	EXPECT_EQ(actualPoints, expectedPoints);
 }
 
-
 TEST(MathTest, foreachCircle)
 {
 	std::vector<math::Vector2> actualPoints;
 	actualPoints.reserve(9);
 	math::foreachCircle(
 		{2, 3},
+		0,
 		1,
 		[&actualPoints](const math::Vector2& point)
 		{
@@ -107,6 +107,33 @@ TEST(MathTest, foreachCircle)
 				{2, 2},
 		{1, 3}, {2, 3}, {3, 3},
 				{2, 4},
+	};
+	//clang-format on
+	EXPECT_EQ(actualPoints, expectedPoints);
+}
+
+TEST(MathTest, foreachCircleMinMax)
+{
+	std::vector<math::Vector2> actualPoints;
+	actualPoints.reserve(9);
+	math::foreachCircle(
+		{2, 2},
+		1,
+		2,
+		[&actualPoints](const math::Vector2& point)
+		{
+			actualPoints.push_back(point);
+			return true;
+		});
+
+	//clang-format off
+
+	std::vector<math::Vector2> expectedPoints = {
+						{2, 0},
+				{1, 1}, {2, 1}, {3, 1},
+		{0, 2}, {1, 2},         {3, 2}, {4, 2},
+				{1, 3}, {2, 3}, {3, 3},
+						{2, 4},
 	};
 	//clang-format on
 	EXPECT_EQ(actualPoints, expectedPoints);
