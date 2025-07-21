@@ -64,34 +64,42 @@ GameSceneWidget::GameSceneWidget(const std::shared_ptr<sw::ecs::Context>& contex
 
 QSize GameSceneWidget::sizeHint()
 {
-	return QSize(320, 240);
+	return QSize(640, 480);
 }
 
 void GameSceneWidget::paintEvent(QPaintEvent* event)
 {
+	static std::unordered_map<std::string, QPixmap> styles{
+		{"Swordsman", QPixmap(":/images/swordsman")},
+		{"Hunter", QPixmap(":/images/hunter")},
+		{"died", QPixmap(":/images/died")}
+	};
+
+	const QPointF pixOffset{0.1, 0.1};
+
+
 	QPainter painter(this);
 
 	// draw grid
 	painter.setPen(Qt::gray);
-	for (qreal x = 0.0; x <= sceneSize.x(); ++x)
+	for (uint32_t x = 0.0; x <= sceneSize.x(); ++x)
 	{
 		painter.drawLine(sceneTransform.map(QPointF(x, 0.0)), sceneTransform.map(QPointF(x, sceneSize.y())));
 	}
 
-	for (qreal y = 0.0; y <= sceneSize.y(); ++y)
+	for (uint32_t y = 0.0; y <= sceneSize.y(); ++y)
 	{
 		painter.drawLine(sceneTransform.map(QPointF(0.0, y)), sceneTransform.map(QPointF(sceneSize.x(), y)));
 	}
 
 	// command layer
-	painter.setPen(Qt::NoPen);
+	painter.setPen(Qt::gray);
 	for (const auto& [_, item] : items)
 	{
 		if (item.endPos)
 		{
-			painter.setBrush(Qt::gray);
-			painter.drawEllipse(
-				sceneTransform.map(*item.endPos + QPointF(0.5, 0.5)), 0.4 * sceneScale, 0.4 * sceneScale);
+			painter.drawPixmap(
+				sceneTransform.map(*item.endPos + pixOffset), QPixmap(":/images/waypoint").scaled(sceneScale, sceneScale, Qt::AspectRatioMode::KeepAspectRatio));
 		}
 	}
 
@@ -116,22 +124,19 @@ void GameSceneWidget::paintEvent(QPaintEvent* event)
 			});
 	}
 
-	static std::unordered_map<std::string, QBrush> styles{
-														  {"Swordsman", QBrush(Qt::red)}, {"Hunter", QBrush(Qt::green)}, {"died", QBrush(Qt::gray)}};
-
 	// cropse layer
 	for (const Item& item : died)
 	{
-		painter.setBrush(styles[item.type]);
-		painter.drawEllipse(sceneTransform.map(item.pos + QPointF(0.5, 0.5)), 0.3 * sceneScale, 0.3 * sceneScale);
+		const QPointF pos = sceneTransform.map(item.pos + pixOffset);
+		painter.drawPixmap(pos, styles[item.type].scaled(sceneScale, sceneScale, Qt::AspectRatioMode::KeepAspectRatio));
 	}
 
 	// unit layer
 	painter.setPen(Qt::black);
 	for (const auto& [_, item] : items)
 	{
-		painter.setBrush(styles[item.type]);
-		painter.drawEllipse(sceneTransform.map(item.pos + QPointF(0.5, 0.5)), 0.3 * sceneScale, 0.3 * sceneScale);
+		const QPointF pos = sceneTransform.map(item.pos + pixOffset);
+		painter.drawPixmap(pos, styles[item.type].scaled(sceneScale, sceneScale, Qt::AspectRatioMode::KeepAspectRatio));
 	}
 }
 
@@ -150,8 +155,9 @@ void GameSceneWidget::updateViewTransform()
 
 	const QPointF widgetSize{static_cast<qreal>(width()), static_cast<qreal>(height())};
 
-	const qreal scaleX = widgetSize.x() / sceneSize.x();
-	const qreal scaleY = widgetSize.y() / sceneSize.y();
+	const qreal extension = 2.0;
+	const qreal scaleX = widgetSize.x() / (sceneSize.x() + extension);
+	const qreal scaleY = widgetSize.y() / (sceneSize.y() + extension);
 	sceneScale = std::min(scaleX, scaleY);
 
 	const QPointF scaledSceneSize = sceneSize * sceneScale;

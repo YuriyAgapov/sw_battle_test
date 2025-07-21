@@ -15,7 +15,6 @@
 #include <Game/Systems/MovementSystem.hpp>
 #include <Game/Systems/SpawnUnitSystem.hpp>
 #include <Game/Systems/VisibilitySystem.hpp>
-#include <Game/Systems/WeaponSystem.hpp>
 #include <IO/Commands/CreateMap.hpp>
 #include <IO/Commands/March.hpp>
 #include <IO/Commands/SpawnHunter.hpp>

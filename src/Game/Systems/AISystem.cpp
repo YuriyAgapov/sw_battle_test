@@ -9,12 +9,13 @@
 #include "Math/Algo.hpp"
 
 #include <ECS/Context.hpp>
+#include <Game/Commands/DamageCommand.hpp>
+#include <Game/Commands/MoveCommand.hpp>
 #include <IO/Commands/March.hpp>
 #include <IO/Events/MarchEnded.hpp>
 #include <IO/Events/MarchStarted.hpp>
 #include <IO/Events/UnitDied.hpp>
 #include <IO/Events/UnitMoved.hpp>
-
 #include <algorithm>
 
 namespace sw::game
@@ -45,7 +46,7 @@ namespace sw::game
 
 				auto [behaviour, movement]
 					= context->getComponents<BehaviourComponent, MovementComponent>(event.unitId);
-				behaviour->target = target;
+				behaviour->waypoint = target;
 
 				context->getDispatcher() << io::MarchStarted{
 															 event.unitId, movement->pos.getX(), movement->pos.getY(), event.targetX, event.targetY};
@@ -55,16 +56,15 @@ namespace sw::game
 			{
 				auto [behaviour, movement]
 					= context->getComponents<BehaviourComponent, MovementComponent>(event.unitId);
-				if (!behaviour->target)
+				if (!behaviour->waypoint)
 				{
 					return;
 				}
 
-				if (movement->pos == *behaviour->target)
+				if (movement->pos == *behaviour->waypoint)
 				{
 					// arrived, reset state
-					behaviour->target.reset();
-					movement->velocity = {};
+					behaviour->waypoint.reset();
 
 					// report to log
 					context->getDispatcher()
@@ -80,51 +80,48 @@ namespace sw::game
 			view.begin(),
 			view.end(),
 			[](const auto& left, const auto& right)
-			{
-				return std::get<1>(left)->priority < std::get<1>(right)->priority;
-			});
+			{ return std::get<1>(left)->priority < std::get<1>(right)->priority; });
 
 		for (const auto& [entityId, behaviour, movement] : view)
 		{
-			if (DoAttack(entityId, movement->pos))
+			if (behaviour->targetId = TryToUseWeapon(entityId, movement->pos); behaviour->targetId != InvalidId)
 			{
-				// to pause movement
-				movement->velocity = {};
+				// attack case, skip moving
 			}
-			else if (behaviour->target)
+			else if (behaviour->waypoint)
 			{
 				uint32_t speed = 1;	 // poi: make speed attribute
-				movement->velocity = math::makeVelocity(movement->pos, *behaviour->target, speed);
-
-				if (!movement->velocity.isZero())
-				{
-					continue;
-				}
+				const math::Vector2 velocity = math::makeVelocity(movement->pos, *behaviour->waypoint, speed);
+				context->getDispatcher() << MoveCommand{entityId, velocity};
 			}
 		}
 	}
 
-	bool AISystem::DoAttack(const uint32_t entityId, const math::Vector2& pos)
+	uint32_t AISystem::TryToUseWeapon(const uint32_t entityId, const math::Vector2& pos) const
 	{
 		auto weaponComponent = context->getComponent<WeaponComponent>(entityId);
+		if (!weaponComponent)
+		{
+			return InvalidId;
+		}
 
 		// find sutable weapon
-		for (auto& weapon : weaponComponent->weapons)
+		for (const auto& weapon : weaponComponent->weapons)
 		{
 			if (const uint32_t targetId = findTarget(entityId, pos, weapon); targetId != InvalidId)
 			{
-				weapon.targetId = targetId;
-				return true;
+				context->getDispatcher() << DamageCommand{entityId, targetId, weapon.damage, weapon.damageType, weapon.weaponType};
+				return targetId;
 			}
 		}
-		return false;
+		return InvalidId;
 	}
 
-	uint32_t AISystem::findTarget(const uint32_t selfId, const math::Vector2& pos, const Weapon& weapon) const
+	uint32_t AISystem::findTarget(const uint32_t entityId, const math::Vector2& pos, const Weapon& weapon) const
 	{
 		uint32_t targetId = InvalidId;
 
-		auto viewer = context->getComponent<ViewerComponent>(selfId);
+		auto viewer = context->getComponent<ViewerComponent>(entityId);
 
 		if (weapon.weaponType == WeaponType::Melee)
 		{
@@ -134,12 +131,12 @@ namespace sw::game
 				weapon.maxRange,
 				[viewer, &targetId, this, weapon](const math::Vector2& point)
 				{
-					for (const uint32_t entityId : viewer->visibleMapping.get(point))
+					for (const uint32_t id : viewer->visibleMapping.get(point))
 					{
-						if (isValidTarget(context, entityId, weapon))
+						if (isValidTarget(context, id, weapon))
 						{
 							// store id and interrupt
-							targetId = entityId;
+							targetId = id;
 							return false;
 						}
 					}
@@ -155,12 +152,12 @@ namespace sw::game
 				weapon.maxRange,
 				[viewer, &targetId, weapon, this](const math::Vector2& point)
 				{
-					for (const uint32_t entityId : viewer->visibleMapping.get(point))
+					for (const uint32_t id : viewer->visibleMapping.get(point))
 					{
-						if (isValidTarget(context, entityId, weapon))
+						if (isValidTarget(context, id, weapon))
 						{
 							// store id and interrupt
-							targetId = entityId;
+							targetId = id;
 							return false;
 						}
 					}

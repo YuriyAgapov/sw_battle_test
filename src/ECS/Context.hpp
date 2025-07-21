@@ -36,6 +36,7 @@ namespace sw::ecs
 		}
 
 		bool hasEntity(const uint32_t entityId) const;
+		bool hasPendingKill(const uint32_t entityId) const;
 
 		void removeEntity(const uint32_t entityId);
 

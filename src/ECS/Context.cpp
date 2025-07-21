@@ -17,6 +17,11 @@ namespace sw::ecs
 		return entities.contains(entityId);
 	}
 
+	bool Context::hasPendingKill(const uint32_t entityId) const
+	{
+		return pendingKill.contains(entityId);
+	}
+
 	void Context::removeEntity(const uint32_t entityId)
 	{
 		pendingKill.emplace(entityId);

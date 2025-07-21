@@ -3,9 +3,9 @@
 #include "Debug.hpp"
 #include "Game/Components/DamageTakerComponent.hpp"
 #include "Game/Components/MovementComponent.hpp"
-#include "Game/Events/DamageEvent.hpp"
 
 #include <ECS/Context.hpp>
+#include <Game/Commands/DamageCommand.hpp>
 #include <IO/Events/UnitAttacked.hpp>
 #include <IO/Events/UnitDied.hpp>
 
@@ -24,82 +24,81 @@ namespace sw::game
 	{
 		debug::check(context, "invalid context");
 
-		context->getDispatcher().subscribe<DamageEvent>(
-			[this](const DamageEvent& damageEvent)
-			{
-				auto causerDamageTaker = context->getComponent<DamageTakerComponent>(damageEvent.causerId);
-				// skip if causer died
-				if (causerDamageTaker->health == 0)
-				{
-					// interpret like the event was rolled back
-					return;
-				}
-
-				auto targetDamageTaker = context->getComponent<DamageTakerComponent>(damageEvent.targetId);
-
-				// skip if already died
-				if (targetDamageTaker->health == 0)
-				{
-					//point for improvement: rules to revive with heal
-					return;
-				}
-
-				// handle damage
-				switch (damageEvent.damageType)
-				{
-					case DamageType::Regular:
-					{
-						const uint32_t damage = calcDamage(damageEvent);
-						targetDamageTaker->health -= std::min(targetDamageTaker->health, damage);
-
-						context->getDispatcher() << io::UnitAttacked{damageEvent.causerId, damageEvent.targetId, damage, targetDamageTaker->health};
-
-						//point for improvement: death/revive rules
-						if (targetDamageTaker->health == 0)
-						{
-							context->removeEntity(damageEvent.targetId);
-							context->getDispatcher() << io::UnitDied{damageEvent.targetId};
-						}
-					}
-					break;
-
-					case DamageType::Heal:
-						targetDamageTaker->health
-							= std::min(targetDamageTaker->health + calcHeal(damageEvent), targetDamageTaker->maxHealth);
-
-						//todo: log heal
-						break;
-					default: break;
-				}
-			});
+		context->getDispatcher().subscribe<DamageCommand>([this](const DamageCommand& comamnd)
+														  { performDamage(comamnd); });
 	}
 
 	void DamageSystem::advance()
 	{
-		context->for_each<DamageTakerComponent>(
-			[this](const uint32_t entityId, auto damageTaker)
-			{
-				return true;
-			});
+		// nothing
 	}
 
-	uint32_t DamageSystem::calcDamage(const DamageEvent& damageEvent) const
+	void DamageSystem::performDamage(const DamageCommand& command)
+	{
+		auto causerDamageTaker = context->getComponent<DamageTakerComponent>(command.causerId);
+		// skip if causer died
+		if (causerDamageTaker->health == 0)
+		{
+			// interpret like the event was rolled back
+			return;
+		}
+
+		auto targetDamageTaker = context->getComponent<DamageTakerComponent>(command.targetId);
+
+		// skip if already died
+		if (targetDamageTaker->health == 0)
+		{
+			//point for improvement: rules to revive with heal
+			return;
+		}
+
+		// handle damage
+		switch (command.damageType)
+		{
+			case DamageType::Regular:
+			{
+				const uint32_t damage = calcDamage(command);
+				targetDamageTaker->health -= std::min(targetDamageTaker->health, damage);
+
+				context->getDispatcher() << io::UnitAttacked{
+															 command.causerId, command.targetId, damage, targetDamageTaker->health};
+
+				//point for improvement: death/revive rules
+				if (targetDamageTaker->health == 0)
+				{
+					context->removeEntity(command.targetId);
+					context->getDispatcher() << io::UnitDied{command.targetId};
+				}
+			}
+			break;
+
+			case DamageType::Heal:
+				targetDamageTaker->health
+					= std::min(targetDamageTaker->health + calcHeal(command), targetDamageTaker->maxHealth);
+
+				//todo: log heal
+				break;
+			default: break;
+		}
+	}
+
+	uint32_t DamageSystem::calcDamage(const DamageCommand& command) const
 	{
 		// point for improvement: resist, crit, handling overdamage or other damage modifiers
 		uint32_t change = 0;
 
 		// reduce damage by the air untits from the ground based (raven case)
-		if (damageEvent.weaponType == WeaponType::Range
-			&& getUnitType(context, damageEvent.causerId) == DispositionType::Ground
-			&& getUnitType(context, damageEvent.targetId) == DispositionType::Air)
+		if (command.weaponType == WeaponType::Range
+			&& getUnitType(context, command.causerId) == DispositionType::Ground
+			&& getUnitType(context, command.targetId) == DispositionType::Air)
 		{
 			change -= 1;
 		}
-		return damageEvent.amount + change;
+		return command.amount + change;
 	}
 
-	uint32_t DamageSystem::calcHeal(const DamageEvent& damageEvent) const
+	uint32_t DamageSystem::calcHeal(const DamageCommand& command) const
 	{
-		return damageEvent.amount;
+		return command.amount;
 	}
 }

@@ -17,8 +17,7 @@ namespace sw::game
 		void advance() final;
 
 	private:
-		bool DoAttack(const uint32_t entityId, const math::Vector2& pos);
-
-		uint32_t findTarget(const uint32_t selfId, const math::Vector2& pos, const Weapon& weapon) const;
+		uint32_t TryToUseWeapon(const uint32_t entityId, const math::Vector2& pos) const;
+		uint32_t findTarget(const uint32_t entityId, const math::Vector2& pos, const Weapon& weapon) const;
 	};
 }

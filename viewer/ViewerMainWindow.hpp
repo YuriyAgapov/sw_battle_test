@@ -21,5 +21,6 @@ private:
 	std::unique_ptr<sw::game::GameApp> app;
 	GameSceneWidget* gameSceneWidget;
 	QTextBrowser* logView;
+	QString lastFileName;
 
 };

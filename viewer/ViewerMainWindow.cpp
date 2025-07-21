@@ -22,6 +22,7 @@ ViewerMainWindow::ViewerMainWindow(QWidget* parent) :
 		gameSceneWidget(new GameSceneWidget(app->getContext(), this)),
 		logView(new QTextBrowser())
 {
+	setWindowIcon(QIcon(":/images/hunter"));
 	setCentralWidget(gameSceneWidget);
 
 	QAction* openCommandsAction = new QAction(tr("Open"), this);
@@ -32,9 +33,18 @@ ViewerMainWindow::ViewerMainWindow(QWidget* parent) :
 		[this](bool)
 		{
 			logView->clear();
-			const QString fileName
-				= QFileDialog::getOpenFileName(this, tr("Select commands file"), qApp->applicationDirPath());
-			app->loadFromFile(fileName.toStdString());
+			lastFileName = QFileDialog::getOpenFileName(this, tr("Select commands file"), qApp->applicationDirPath());
+			app->loadFromFile(lastFileName.toStdString());
+		});
+	QAction* reopenCommandsAction = new QAction(tr("Reopen"), this);
+	connect(
+		reopenCommandsAction,
+		&QAction::triggered,
+		this,
+		[this](bool)
+		{
+			logView->clear();
+			app->loadFromFile(lastFileName.toStdString());
 		});
 
 	QAction* simulateStepAction = new QAction(tr("Simulate step"), this);
@@ -51,6 +61,7 @@ ViewerMainWindow::ViewerMainWindow(QWidget* parent) :
 
 	QToolBar* toolBar = addToolBar(tr("ToolBar"));
 	toolBar->addAction(openCommandsAction);
+	toolBar->addAction(reopenCommandsAction);
 	toolBar->addAction(simulateStepAction);
 
 	QDockWidget* logDock = new QDockWidget(this);

@@ -8,7 +8,7 @@
 
 namespace sw::game
 {
-	struct DamageEvent
+	struct DamageCommand
 	{
 		uint32_t causerId = InvalidId;
 		uint32_t targetId = InvalidId;

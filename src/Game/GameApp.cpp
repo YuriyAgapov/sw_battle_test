@@ -12,7 +12,6 @@
 #include <Game/Systems/MovementSystem.hpp>
 #include <Game/Systems/SpawnUnitSystem.hpp>
 #include <Game/Systems/VisibilitySystem.hpp>
-#include <Game/Systems/WeaponSystem.hpp>
 #include <IO/Commands/CreateMap.hpp>
 #include <IO/Commands/March.hpp>
 #include <IO/Commands/SpawnHunter.hpp>
@@ -28,18 +27,10 @@ namespace sw::game
 	{
 		debug::check(context, "invalid context");
 
-		return !context->for_each<WeaponComponent, BehaviourComponent>(
-			[](const uint32_t entityId, auto weaponComponent, std::shared_ptr<BehaviourComponent> behaviour)
+		return !context->for_each<BehaviourComponent>(
+			[](const uint32_t entityId, std::shared_ptr<BehaviourComponent> behaviour)
 			{
-				for (const auto& weapon : weaponComponent->weapons)
-				{
-					if (weapon.targetId != InvalidId)
-					{
-						return false;
-					}
-				}
-
-				return behaviour->target.has_value();
+				return behaviour->targetId != InvalidId || behaviour->waypoint.has_value();
 			});
 	}
 
@@ -140,7 +131,6 @@ namespace sw::game
 		context->addSystem(std::make_unique<game::SpawnUnitSystem>(context));
 		context->addSystem(std::make_unique<game::VisibilitySystem>(context));
 		context->addSystem(std::make_unique<game::AISystem>(context));
-		context->addSystem(std::make_unique<game::WeaponSystem>(context));
 		context->addSystem(std::make_unique<game::DamageSystem>(context));
 		context->addSystem(std::make_unique<game::MovementSystem>(context));
 		context->addSystem(std::make_unique<game::LoggerSystem>(context));

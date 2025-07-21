@@ -46,12 +46,12 @@ namespace sw::game
 		debug::check(context, "invalid context");
 
 		context->getDispatcher().subscribe<io::SpawnSwordsman>(
-			[this](const io::SpawnSwordsman& event)
+			[this](const io::SpawnSwordsman& command)
 			{
-				auto swordsman = createBaseUnit(context, event, ++globalOrder);
+				auto swordsman = createBaseUnit(context, command, ++globalOrder);
 				auto weaponry = context->addComponent<game::WeaponComponent>(swordsman);
 				weaponry->weapons = {game::Weapon{
-												  event.strength,
+												  command.strength,
 					0,	//min
 					1,	//max
 					game::DamageType::Regular,
@@ -61,24 +61,24 @@ namespace sw::game
 				auto viewer = context->addComponent<game::ViewerComponent>(swordsman);
 				viewer->range = 1;
 
-				context->getDispatcher() << io::UnitSpawned{event.unitId, "Swordsman", event.x, event.y};
+				context->getDispatcher() << io::UnitSpawned{command.unitId, "Swordsman", command.x, command.y};
 			});
 		context->getDispatcher().subscribe<io::SpawnHunter>(
-			[this](const io::SpawnHunter& event)
+			[this](const io::SpawnHunter& command)
 			{
-				auto hunter = createBaseUnit(context, event, ++globalOrder);
+				auto hunter = createBaseUnit(context, command, ++globalOrder);
 				auto weaponry = context->addComponent<game::WeaponComponent>(hunter);
 				weaponry->weapons
 					= {game::Weapon{
-									event.agility,
+									command.agility,
 						   2,  //min
-						   event.range,
+						   command.range,
 						   game::DamageType::Regular,
 						   game::WeaponType::Range,
 						   std::unordered_set<game::DispositionType>{
 																	 game::DispositionType::Ground, game::DispositionType::Air}},
 					   game::Weapon{
-									event.strength,
+									command.strength,
 						   0,  //min
 						   1,  //max
 						   game::DamageType::Regular,
@@ -86,9 +86,9 @@ namespace sw::game
 						   std::unordered_set<game::DispositionType>{game::DispositionType::Ground}}};
 
 				auto viewer = context->addComponent<game::ViewerComponent>(hunter);
-				viewer->range = event.range;
+				viewer->range = command.range;
 
-				context->getDispatcher() << io::UnitSpawned{event.unitId, "Hunter", event.x, event.y};
+				context->getDispatcher() << io::UnitSpawned{command.unitId, "Hunter", command.x, command.y};
 			});
 	}
 

@@ -18,12 +18,10 @@ namespace sw::game
 		DamageType damageType = DamageType::Regular;
 		WeaponType weaponType = WeaponType::Melee;
 		std::unordered_set<DispositionType> canDamage;
-		uint32_t targetId = InvalidId;
 	};
 
 	struct WeaponComponent
 	{
-		// weapon id - weapon
 		std::vector<Weapon> weapons;
 	};
 }

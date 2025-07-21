@@ -9,6 +9,5 @@ namespace sw::game
 	{
 		DispositionType type = DispositionType::Ground;
 		math::Vector2 pos{};
-		math::Vector2 velocity{};
 	};
 }

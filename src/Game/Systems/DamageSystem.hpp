@@ -4,8 +4,7 @@
 
 namespace sw::game
 {
-
-	class DamageEvent;
+	struct DamageCommand;
 
 	class DamageSystem : public ecs::System
 	{
@@ -15,7 +14,8 @@ namespace sw::game
 		void advance() final;
 
 	private:
-		uint32_t calcDamage(const DamageEvent& damageEvent) const;
-		uint32_t calcHeal(const DamageEvent& damageEvent) const;
+		void performDamage(const DamageCommand& command);
+		uint32_t calcDamage(const DamageCommand& command) const;
+		uint32_t calcHeal(const DamageCommand& command) const;
 	};
 }

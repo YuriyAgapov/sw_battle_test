@@ -1,7 +1,7 @@
 #include "game_test_fixture.hpp"
 
+#include <Game/Commands/DamageCommand.hpp>
 #include <Game/Components/WeaponComponent.hpp>
-#include <Game/Events/DamageEvent.hpp>
 #include <IO/Commands/SpawnHunter.hpp>
 #include <IO/Commands/SpawnSwordsman.hpp>
 #include <gtest/gtest.h>
@@ -19,22 +19,22 @@ TEST_F(GameTest, hunterRanged)
 	dispatcher << io::SpawnHunter{hunter, 1, 1, hp, damage, damage, 4};
 	dispatcher << io::SpawnSwordsman{puppet, 1, 4, hp, damage};
 
-	std::optional<game::DamageEvent> actualEvent;
-	dispatcher.subscribe<game::DamageEvent>(
-		[&actualEvent](const game::DamageEvent& event)
+	std::optional<game::DamageCommand> actualCommand;
+	dispatcher.subscribe<game::DamageCommand>(
+		[&actualCommand](const game::DamageCommand& command)
 		{
-			if (event.causerId == hunter)
+			if (command.causerId == hunter)
 			{
-				EXPECT_FALSE(actualEvent.has_value());
-				actualEvent = event;
+				EXPECT_FALSE(actualCommand.has_value());
+				actualCommand = command;
 			}
 		});
 
 	context->getDispatcher().dispatchAll();
 	context->advance();
 
-	EXPECT_TRUE(actualEvent.has_value());
-	EXPECT_EQ(actualEvent->weaponType, game::WeaponType::Range);
+	EXPECT_TRUE(actualCommand.has_value());
+	EXPECT_EQ(actualCommand->weaponType, game::WeaponType::Range);
 }
 
 TEST_F(GameTest, hunterMelee)
@@ -48,20 +48,20 @@ TEST_F(GameTest, hunterMelee)
 	dispatcher << io::SpawnHunter{hunter, 1, 1, hp, damage, damage, 4};
 	dispatcher << io::SpawnSwordsman{puppet, 1, 2, hp, damage};
 
-	std::optional<game::DamageEvent> actualEvent;
-	dispatcher.subscribe<game::DamageEvent>(
-		[&actualEvent](const game::DamageEvent& event)
+	std::optional<game::DamageCommand> actualCommand;
+	dispatcher.subscribe<game::DamageCommand>(
+		[&actualCommand](const game::DamageCommand& command)
 		{
-			if (event.causerId == hunter)
+			if (command.causerId == hunter)
 			{
-				EXPECT_FALSE(actualEvent.has_value());
-				actualEvent = event;
+				EXPECT_FALSE(actualCommand.has_value());
+				actualCommand = command;
 			}
 		});
 
 	context->getDispatcher().dispatchAll();
 	context->advance();
 
-	EXPECT_TRUE(actualEvent.has_value());
-	EXPECT_EQ(actualEvent->weaponType, game::WeaponType::Melee);
+	EXPECT_TRUE(actualCommand.has_value());
+	EXPECT_EQ(actualCommand->weaponType, game::WeaponType::Melee);
 }
