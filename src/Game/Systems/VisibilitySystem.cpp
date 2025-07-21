@@ -24,8 +24,9 @@ namespace sw::game
 				const uint32_t entityId, auto viewer, auto movement)
 			{
 				viewer->visibleMapping.clear();
-				math::foreachRect(
+				math::foreachCircle(
 					movement->pos,
+					0,
 					viewer->range,
 					[this, grid, viewer, selfId = entityId](const math::Vector2& point)
 					{

@@ -3,7 +3,6 @@
 #include "Debug.hpp"
 #include "Game/Components/BehaviourComponent.hpp"
 #include "Game/Components/DamageTakerComponent.hpp"
-#include "Game/Components/GridComponent.hpp"
 #include "Game/Components/MovementComponent.hpp"
 #include "Game/Components/ViewerComponent.hpp"
 #include "Game/Components/WeaponComponent.hpp"
@@ -14,6 +13,9 @@
 #include <IO/Events/MarchEnded.hpp>
 #include <IO/Events/MarchStarted.hpp>
 #include <IO/Events/UnitDied.hpp>
+#include <IO/Events/UnitMoved.hpp>
+
+#include <algorithm>
 
 namespace sw::game
 {
@@ -48,63 +50,58 @@ namespace sw::game
 				context->getDispatcher() << io::MarchStarted{
 															 event.unitId, movement->pos.getX(), movement->pos.getY(), event.targetX, event.targetY};
 			});
-		context->getDispatcher().subscribe<io::UnitDied>(
-			[context](const io::UnitDied& event)
+		context->getDispatcher().subscribe<io::UnitMoved>(
+			[context](const io::UnitMoved& event)
 			{
-				auto movement = context->getComponent<MovementComponent>(event.unitId);
-				auto grid = context->getSingletoneComponent<game::GridComponent>();
-				grid->mapping.remove(event.unitId, movement->pos);
-				context->removeEntity(event.unitId);
+				auto [behaviour, movement]
+					= context->getComponents<BehaviourComponent, MovementComponent>(event.unitId);
+				if (!behaviour->target)
+				{
+					return;
+				}
+
+				if (movement->pos == *behaviour->target)
+				{
+					// arrived, reset state
+					behaviour->target.reset();
+					movement->velocity = {};
+
+					// report to log
+					context->getDispatcher()
+						<< io::MarchEnded{event.unitId, movement->pos.getX(), movement->pos.getY()};
+				}
 			});
 	}
 
 	void AISystem::advance()
 	{
-		// simple a desision making
-		context->for_each<BehaviourComponent, MovementComponent>(
-			[this](const uint32_t entityId, auto behaviour, auto movement)
+		auto view = context->makeView<BehaviourComponent, MovementComponent>();
+		std::sort(
+			view.begin(),
+			view.end(),
+			[](const auto& left, const auto& right)
 			{
-				for (const auto priority : behaviour->priorityOrder)
-				{
-					switch (priority)
-					{
-						case BehaviourPriorityType::Attack:
-							if (DoAttack(entityId, movement->pos))
-							{
-								// to pause movement
-								movement->velocity = {};
-								return true;
-							}
-						case BehaviourPriorityType::Movement:
-							if (behaviour->target)
-							{
-								const math::Vector2 target = *behaviour->target;
-								if (movement->pos == target)
-								{
-									// arrived, reset state
-									behaviour->target.reset();
-									movement->velocity = {};
-
-									// report to log
-									context->getDispatcher() << io::MarchEnded{entityId, movement->pos.getX(), movement->pos.getY()};
-								}
-								else
-								{
-									uint32_t speed = 1;	 // poi: make speed attribute
-									auto pos2 = math::moveTo(movement->pos, target, speed);
-									movement->velocity = pos2 - movement->pos;
-
-									if (!movement->velocity.isZero())
-									{
-										return true;
-									}
-								}
-							}
-							break;
-					}
-				}
-				return true;
+				return std::get<1>(left)->priority < std::get<1>(right)->priority;
 			});
+
+		for (const auto& [entityId, behaviour, movement] : view)
+		{
+			if (DoAttack(entityId, movement->pos))
+			{
+				// to pause movement
+				movement->velocity = {};
+			}
+			else if (behaviour->target)
+			{
+				uint32_t speed = 1;	 // poi: make speed attribute
+				movement->velocity = math::makeVelocity(movement->pos, *behaviour->target, speed);
+
+				if (!movement->velocity.isZero())
+				{
+					continue;
+				}
+			}
+		}
 	}
 
 	bool AISystem::DoAttack(const uint32_t entityId, const math::Vector2& pos)

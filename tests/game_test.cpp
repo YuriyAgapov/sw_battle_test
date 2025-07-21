@@ -28,9 +28,9 @@ using namespace sw::game;
 
 TEST_F(GameTest, spawnSwordsman)
 {
-	uint32_t unitId = 1;
-	uint32_t hp = 2;
-	uint32_t damage = 3;
+	const uint32_t unitId = 1;
+	const uint32_t hp = 2;
+	const uint32_t damage = 3;
 	context->getDispatcher() << io::SpawnSwordsman{unitId, 5, 5, hp, damage};
 	context->advance();
 
@@ -66,9 +66,9 @@ TEST_F(GameTest, spawnSwordsman)
 
 TEST_F(GameTest, movementSystem)
 {
-	uint32_t unitId = 1;
-	uint32_t hp = 2;
-	uint32_t damage = 3;
+	const uint32_t unitId = 1;
+	const uint32_t hp = 2;
+	const uint32_t damage = 3;
 	context->getDispatcher() << io::SpawnSwordsman{unitId, 0, 0, hp, damage};
 	context->getDispatcher() << io::March{unitId, 5, 2};
 	context->getDispatcher().dispatchAll();
@@ -88,10 +88,10 @@ TEST_F(GameTest, movementSystem)
 
 TEST_F(GameTest, visibilitySystem)
 {
-	uint32_t unitA = 1;
-	uint32_t unitB = 2;
-	uint32_t hp = 999;
-	uint32_t damage = 1;
+	const uint32_t unitA = 1;
+	const uint32_t unitB = 2;
+	const uint32_t hp = 999;
+	const uint32_t damage = 1;
 	context->getDispatcher() << io::SpawnSwordsman{unitA, 1, 1, hp, damage};
 	context->getDispatcher() << io::SpawnSwordsman{unitB, 1, 2, hp, damage};
 	context->getDispatcher().dispatchAll();
@@ -106,11 +106,11 @@ TEST_F(GameTest, visibilitySystem)
 
 TEST_F(GameTest, damageSystem)
 {
-	uint32_t unitA = 1;
-	uint32_t unitB = 2;
-	uint32_t hp = 999;
-	uint32_t damageA = 10;
-	uint32_t damageB = 20;
+	const uint32_t unitA = 1;
+	const uint32_t unitB = 2;
+	const uint32_t hp = 999;
+	const uint32_t damageA = 10;
+	const uint32_t damageB = 20;
 	context->getDispatcher() << io::SpawnSwordsman{unitA, 1, 1, hp, damageA};
 	context->getDispatcher() << io::SpawnSwordsman{unitB, 1, 2, hp, damageB};
 	context->getDispatcher().dispatchAll();
@@ -123,3 +123,37 @@ TEST_F(GameTest, damageSystem)
 	EXPECT_EQ(damageTakerB->health, hp - damageA);
 }
 
+TEST_F(GameTest, sortView)
+{
+	const uint32_t unitA = 1;
+	const uint32_t unitB = 2;
+	context->getDispatcher() << io::SpawnSwordsman{unitA, 1, 1, 1, 1};
+	context->getDispatcher() << io::SpawnSwordsman{unitB, 1, 2, 1, 1};
+	context->getDispatcher().dispatchAll();
+
+	auto view = context->makeView<BehaviourComponent, MovementComponent>();
+	std::sort(
+		view.begin(),
+		view.end(),
+		[](const auto& left, const auto& right)
+		{
+			return std::get<1>(left)->priority < std::get<1>(right)->priority;
+		});
+
+	EXPECT_EQ(std::get<0>(view[0]), unitA);
+	EXPECT_EQ(std::get<0>(view[1]), unitB);
+
+	auto behaviourA = context->getComponent<BehaviourComponent>(unitA);
+	auto behaviourB = context->getComponent<BehaviourComponent>(unitB);
+	behaviourA->priority = behaviourB->priority + 1;
+
+	std::sort(
+		view.begin(),
+		view.end(),
+		[](const auto& left, const auto& right)
+		{
+			return std::get<1>(left)->priority < std::get<1>(right)->priority;
+		});
+	EXPECT_EQ(std::get<0>(view[0]), unitB);
+	EXPECT_EQ(std::get<0>(view[1]), unitA);
+}

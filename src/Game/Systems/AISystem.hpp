@@ -20,7 +20,5 @@ namespace sw::game
 		bool DoAttack(const uint32_t entityId, const math::Vector2& pos);
 
 		uint32_t findTarget(const uint32_t selfId, const math::Vector2& pos, const Weapon& weapon) const;
-
-		std::shared_ptr<GridComponent> grid;
 	};
 }

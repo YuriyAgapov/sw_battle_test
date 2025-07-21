@@ -26,8 +26,8 @@ namespace sw::ecs
 	{
 		entities.clear();
 		components.clear();
-		systems.clear();
 		pendingKill.clear();
+		eventDispatcher.clear();
 		tickCount = 0;
 	}
 

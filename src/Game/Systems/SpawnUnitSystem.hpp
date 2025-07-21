@@ -10,5 +10,9 @@ namespace sw::game
 		explicit SpawnUnitSystem(const std::shared_ptr<ecs::Context>& context);
 
 		void advance() final;
+
+	private:
+		// used for ordering of the units
+		uint32_t globalOrder = 0;
 	};
 }

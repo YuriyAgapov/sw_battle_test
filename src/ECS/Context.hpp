@@ -108,6 +108,24 @@ namespace sw::ecs
 			return true;
 		}
 
+		template <typename... ComponentTypes>
+		std::vector<std::tuple<uint32_t, std::shared_ptr<ComponentTypes>...>> makeView()
+		{
+			std::vector<std::tuple<uint32_t, std::shared_ptr<ComponentTypes>...>> view;
+			for (const uint32_t entityId : entities)
+			{
+				// collect components by type
+				auto components = getComponents<ComponentTypes...>(entityId);
+
+				// check compenents consistensy
+				if ((... && std::get<std::shared_ptr<ComponentTypes>>(components)))
+				{
+					view.emplace_back(std::tuple_cat(std::make_tuple(entityId), components));
+				}
+			}
+			return view;
+		}
+
 	private:
 		static ComponentIndex makeIndex(const uint32_t entityId, const size_t typeId)
 		{

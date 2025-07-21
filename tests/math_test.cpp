@@ -138,32 +138,3 @@ TEST(MathTest, foreachCircleMinMax)
 	//clang-format on
 	EXPECT_EQ(actualPoints, expectedPoints);
 }
-
-// moveTo section
-
-using MathVectorMove_TestParam = std::tuple<math::Vector2, math::Vector2, uint32_t, math::Vector2>;
-
-class MathVectorMove_MoveToTest : public ::testing::TestWithParam<MathVectorMove_TestParam>
-{};
-
-TEST_P(MathVectorMove_MoveToTest, ReturnsExpectedResult)
-{
-	const auto& [start, end, dist, expected] = GetParam();
-	EXPECT_EQ(math::moveTo(start, end, dist), expected);
-}
-
-INSTANTIATE_TEST_SUITE_P(
-	MoveToCases,
-	MathVectorMove_MoveToTest,
-	::testing::Values(
-		MathVectorMove_TestParam{{1, 1}, {2, 2}, 0, {1, 1}},  // stay
-		MathVectorMove_TestParam{{1, 1}, {1, 2}, 1, {1, 2}},  // top
-		MathVectorMove_TestParam{{2, 2}, {1, 2}, 1, {1, 2}},  // bottom
-		MathVectorMove_TestParam{{1, 1}, {2, 1}, 1, {2, 1}},  // right
-		MathVectorMove_TestParam{{2, 2}, {2, 1}, 1, {2, 1}},  // left
-		MathVectorMove_TestParam{{1, 1}, {2, 2}, 1, {2, 2}},  // bottom right
-		MathVectorMove_TestParam{{1, 1}, {2, 0}, 1, {2, 0}},  // top right
-		MathVectorMove_TestParam{{1, 1}, {0, 2}, 1, {0, 2}},  // bottom left
-		MathVectorMove_TestParam{{1, 1}, {0, 0}, 1, {0, 0}},  // top left
-		MathVectorMove_TestParam{{1, 1}, {2, 4}, 2, {2, 3}}	  // long
-		));

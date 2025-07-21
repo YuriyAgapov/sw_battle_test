@@ -17,7 +17,7 @@
 namespace sw::game
 {
 	template <typename TData>
-	inline uint32_t createBaseUnit(const std::shared_ptr<ecs::Context>& context, const TData& data)
+	inline uint32_t createBaseUnit(const std::shared_ptr<ecs::Context>& context, const TData& data, const uint32_t priority)
 	{
 		const math::Vector2 pos{data.x, data.y};
 		debug::checkPosition(context, pos);
@@ -30,27 +30,25 @@ namespace sw::game
 		movement->pos = pos;
 		movement->type = game::DispositionType::Ground;
 
-		auto unit = context->addComponent<game::BehaviourComponent>(data.unitId);
+		auto behaviour = context->addComponent<game::BehaviourComponent>(data.unitId);
+		behaviour->priority = priority;
 
 		auto damageTaker = context->addComponent<game::DamageTakerComponent>(data.unitId);
 		damageTaker->health = data.hp;
 		damageTaker->maxHealth = data.hp;
 
-		auto grid = context->getSingletoneComponent<game::GridComponent>();
-		grid->mapping.add(data.unitId, pos);
-
 		return data.unitId;
 	}
 
-	SpawnUnitSystem::SpawnUnitSystem(const std::shared_ptr<ecs::Context>& context) :
-			System(context)
+	SpawnUnitSystem::SpawnUnitSystem(const std::shared_ptr<ecs::Context>& inContext) :
+			System(inContext)
 	{
 		debug::check(context, "invalid context");
 
 		context->getDispatcher().subscribe<io::SpawnSwordsman>(
-			[context](const io::SpawnSwordsman& event)
+			[this](const io::SpawnSwordsman& event)
 			{
-				auto swordsman = createBaseUnit(context, event);
+				auto swordsman = createBaseUnit(context, event, ++globalOrder);
 				auto weaponry = context->addComponent<game::WeaponComponent>(swordsman);
 				weaponry->weapons = {game::Weapon{
 												  event.strength,
@@ -66,9 +64,9 @@ namespace sw::game
 				context->getDispatcher() << io::UnitSpawned{event.unitId, "Swordsman", event.x, event.y};
 			});
 		context->getDispatcher().subscribe<io::SpawnHunter>(
-			[context](const io::SpawnHunter& event)
+			[this](const io::SpawnHunter& event)
 			{
-				auto hunter = createBaseUnit(context, event);
+				auto hunter = createBaseUnit(context, event, ++globalOrder);
 				auto weaponry = context->addComponent<game::WeaponComponent>(hunter);
 				weaponry->weapons
 					= {game::Weapon{

@@ -66,19 +66,19 @@ namespace sw::math
 		return {static_cast<int64_t>(round(x)), static_cast<int64_t>(round(y))};
 	}
 
-	inline Vector2 moveTo(const Vector2& from, const Vector2& to, const uint32_t distance)
+	inline Vector2 makeVelocity(const Vector2& from, const Vector2& to, const uint32_t speed)
 	{
-		if (distance == 0)
-			return from;
+		if (speed == 0)
+			return Vector2{};
 
 		const Vector2 delta = to - from;
 		const double totalDistance = length(delta);
 		if (totalDistance == 0.0f)
-			return from;
-		if (distance >= totalDistance)
-			return to;
+			return Vector2{};
+		if (speed >= totalDistance)
+			return to - from;
 
-		return from + roundVector(delta.x / totalDistance * distance, delta.y / totalDistance * distance);
+		return roundVector(delta.x / totalDistance * speed, delta.y / totalDistance * speed);
 	}
 }
 

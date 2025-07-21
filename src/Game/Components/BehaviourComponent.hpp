@@ -1,6 +1,5 @@
 #pragma once
 
-#include "Game/Types/BehaviourPriorityType.hpp"
 #include "Math/Vector2.hpp"
 
 #include <optional>
@@ -10,7 +9,7 @@ namespace sw::game
 {
 	struct BehaviourComponent
 	{
+		uint32_t priority{};
 		std::optional<math::Vector2> target;
-		std::vector<BehaviourPriorityType> priorityOrder = {BehaviourPriorityType::Attack, BehaviourPriorityType::Movement};
 	};
 }

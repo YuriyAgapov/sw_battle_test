@@ -49,6 +49,11 @@ namespace sw::ecs
 			events.clear();
 		}
 
+		void clear()
+		{
+			events.clear();
+		}
+
 		template <typename TEventType>
 		EventDispatcher& operator<<(TEventType event)
 		{

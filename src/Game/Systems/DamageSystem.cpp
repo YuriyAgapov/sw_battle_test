@@ -53,6 +53,13 @@ namespace sw::game
 						targetDamageTaker->health -= std::min(targetDamageTaker->health, damage);
 
 						context->getDispatcher() << io::UnitAttacked{damageEvent.causerId, damageEvent.targetId, damage, targetDamageTaker->health};
+
+						//point for improvement: death/revive rules
+						if (targetDamageTaker->health == 0)
+						{
+							context->removeEntity(damageEvent.targetId);
+							context->getDispatcher() << io::UnitDied{damageEvent.targetId};
+						}
 					}
 					break;
 
@@ -72,13 +79,6 @@ namespace sw::game
 		context->for_each<DamageTakerComponent>(
 			[this](const uint32_t entityId, auto damageTaker)
 			{
-				if (damageTaker->health == 0)
-				{
-					//point for improvement: death/revive rules
-					context->removeEntity(entityId);
-
-					context->getDispatcher() << io::UnitDied{entityId};
-				}
 				return true;
 			});
 	}

@@ -89,6 +89,8 @@ namespace sw::game
 			return false;
 		}
 
+		clear();
+
 		// eval game scenario
 		std::cout << "Commands:\n";
 		io::CommandParser parser;
@@ -98,7 +100,6 @@ namespace sw::game
 				{
 					printDebug(std::cout, data);
 
-					// setup world
 					context->getDispatcher() << data;
 				})
 			.add<io::SpawnSwordsman>(
@@ -133,9 +134,6 @@ namespace sw::game
 	void GameApp::init()
 	{
 		debug::check(context, "invalid context");
-
-		// init singletone first
-		context->addSingletoneComponent<game::GridComponent>();
 
 		// init systems (order important)
 		// poi: introduce system dependency resolving (DAG)
