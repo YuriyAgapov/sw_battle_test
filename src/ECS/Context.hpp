@@ -14,6 +14,9 @@ namespace sw::ecs
 {
 	class System;
 
+	/** ECS system context, designed to isolate unrelated data, systems and events.
+	 *  Responsible for storing entities, components and systems, is the entry point for accessing the event manager
+	 **/
 	class Context
 	{
 	public:
@@ -24,8 +27,13 @@ namespace sw::ecs
 
 		virtual ~Context();
 
+		/// returns true if the entity has been added, otherwise false if the entity is already registered
 		bool addEntity(const uint32_t entityId);
 
+		/**
+		 *  returns true if the entity has been added, otherwise false if the entity is already registered
+		 *  Сreates and associates components of the specified types with a new entity
+		**/
 		template <typename ... ComponentType>
 		bool addEntity(const uint32_t entityId)
 		{
@@ -35,24 +43,37 @@ namespace sw::ecs
 			return true;
 		}
 
+		/// returns true if @arg entityId exists
 		bool hasEntity(const uint32_t entityId) const;
+
+		/// returns true if @arg entityId will be deleted after the current tick
 		bool hasPendingKill(const uint32_t entityId) const;
 
+		/// marks the specified entity @arg uint32_t for deletion at the end of a tick
 		void removeEntity(const uint32_t entityId);
 
+		/// removes entities, components and events
 		void clear();
 
+		/// Consistently advances all systems, then dispatches events, and then deletes entities awaiting deletion
 		void advance();
 
+		/// adds specified system to the context, for advance in tick
 		void addSystem(std::unique_ptr<System> system);
 
+		/// returns registered entities
 		const EntitySet& getEntities() const;
+
+		/// returns registered componenets
 		const ComponentMap& getComponents() const;
 
+		/// returns a reference to the current event dispatcher
 		EventDispatcher& getDispatcher();
 
+		/// returns current tick number
 		uint32_t getTickCount() const;
 
+		/// creates a component of the given type for the given entity
 		template <typename ComponentType, typename... Args>
 		std::shared_ptr<ComponentType> addComponent(const uint32_t entityId, Args... args)
 		{
@@ -61,12 +82,14 @@ namespace sw::ecs
 			return pair.second ? component : nullptr;
 		}
 
+		/// creates a singletone component of the given type
 		template <typename ComponentType, typename... Args>
 		std::shared_ptr<ComponentType> addSingletoneComponent(Args... args)
 		{
 			return addComponent<ComponentType>(SingletoneId, args...);
 		}
 
+		/// returns a component of the given type if it was associated with the given entity
 		template <typename ComponentType>
 		std::shared_ptr<ComponentType> getComponent(const uint32_t entityId) const
 		{
@@ -75,19 +98,21 @@ namespace sw::ecs
 			return compIter != components.end() ? std::static_pointer_cast<ComponentType>(compIter->second) : nullptr;
 		}
 
-		// returns singletone component
+		/// returns singletone component
 		template <typename ComponentType>
 		std::shared_ptr<ComponentType> getSingletoneComponent() const
 		{
 			return getComponent<ComponentType>(SingletoneId);
 		}
 
+		/// returns a tuple of components of the given type if they were associated with the given entity, may return nullptr as part of the tuple
 		template <typename... ComponentTypes>
 		std::tuple<std::shared_ptr<ComponentTypes>...> getComponents(const uint32_t entityId) const
 		{
 			return std::make_tuple(getComponent<ComponentTypes>(entityId)...);
 		}
 
+		/// iterates over all entities that satisfy the given archetype, if the handler returns - false - breaks the cycle
 		template <typename... ComponentTypes, typename Function>
 		bool for_each(Function&& function)
 		{
@@ -109,6 +134,7 @@ namespace sw::ecs
 			return true;
 		}
 
+		/// returns a list of component tuples for entities that match a given archetype
 		template <typename... ComponentTypes>
 		std::vector<std::tuple<uint32_t, std::shared_ptr<ComponentTypes>...>> makeView()
 		{
@@ -142,11 +168,22 @@ namespace sw::ecs
 			return entityId == index.enitityId;
 		}
 
+		// set of current entities
 		EntitySet entities;
+
+		// entities which will be deleted at the end of the tick
 		EntitySet pendingKill;
+
+		// current components
 		ComponentMap components;
+
+		// set of active systems
 		std::vector<std::unique_ptr<System>> systems;
+
+		// provides events handling
 		EventDispatcher eventDispatcher;
+
+		// tick counter, resets by clear
 		uint32_t tickCount = 0;
 	};
 }

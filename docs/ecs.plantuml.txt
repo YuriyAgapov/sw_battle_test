@@ -1,0 +1,17 @@
+@startuml
+
+entity "Entity (concept)" as E
+class Event
+class Component
+class Context
+class System
+
+Context *-- [*] E
+Context *-- [*] Component
+Context *-- [1] EventDispatcher
+Context *-- [*] System
+
+EventDispatcher *-- Event
+
+
+@enduml

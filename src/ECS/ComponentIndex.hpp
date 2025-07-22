@@ -7,6 +7,9 @@
 
 namespace sw::ecs
 {
+	/** Component index, a combination of entity identifier and component type hash
+	 *  Used by context to address components
+	 */
 	struct ComponentIndex
 	{
 		uint32_t enitityId = InvalidId;

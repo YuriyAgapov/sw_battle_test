@@ -1,6 +1,5 @@
 #pragma once
 
-#include "Common.hpp"
 #include "Game/Types/DamageType.hpp"
 #include "Game/Types/DispositionType.hpp"
 #include "Game/Types/WeaponType.hpp"
