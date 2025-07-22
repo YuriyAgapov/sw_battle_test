@@ -1,9 +1,8 @@
 #pragma once
 
 #include "details/PrintFieldVisitor.hpp"
+#include <cstdint>
 #include <iostream>
-#include <typeindex>
-#include <unordered_map>
 
 namespace sw
 {
@@ -11,9 +10,9 @@ namespace sw
 	{
 	public:
 		template <class TEvent>
-		void log(uint64_t tick, TEvent&& event)
+		static void log(uint64_t tick, TEvent&& event)
 		{
-			std::cout << "[" << tick << "] " << TEvent::Name << " ";
+			std::cout << "[" << tick << "] " << std::remove_reference_t<TEvent>::Name << " ";
 			PrintFieldVisitor visitor(std::cout);
 			event.visit(visitor);
 			std::cout << std::endl;
