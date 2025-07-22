@@ -23,8 +23,13 @@ GameSceneWidget::GameSceneWidget(const std::shared_ptr<sw::ecs::Context>& contex
 		QWidget(parent),
 		context(context)
 {
-	context->getDispatcher().subscribe<io::MapCreated>([this](const io::MapCreated& event)
-													   { setSceneSize(toPointF(event.width, event.height)); });
+	context->getDispatcher().subscribe<io::MapCreated>(
+		[this](const io::MapCreated& event)
+		{
+			died.clear();
+			items.clear();
+			setSceneSize(toPointF(event.width, event.height));
+		});
 	context->getDispatcher().subscribe<io::UnitSpawned>(
 		[this](const io::UnitSpawned& event)
 		{
@@ -72,11 +77,9 @@ void GameSceneWidget::paintEvent(QPaintEvent* event)
 	static std::unordered_map<std::string, QPixmap> styles{
 		{"Swordsman", QPixmap(":/images/swordsman")},
 		{"Hunter", QPixmap(":/images/hunter")},
-		{"died", QPixmap(":/images/died")}
-	};
+		{"died", QPixmap(":/images/died")}};
 
 	const QPointF pixOffset{0.1, 0.1};
-
 
 	QPainter painter(this);
 
@@ -99,7 +102,8 @@ void GameSceneWidget::paintEvent(QPaintEvent* event)
 		if (item.endPos)
 		{
 			painter.drawPixmap(
-				sceneTransform.map(*item.endPos + pixOffset), QPixmap(":/images/waypoint").scaled(sceneScale, sceneScale, Qt::AspectRatioMode::KeepAspectRatio));
+				sceneTransform.map(*item.endPos + pixOffset),
+				QPixmap(":/images/waypoint").scaled(sceneScale, sceneScale, Qt::AspectRatioMode::KeepAspectRatio));
 		}
 	}
 
