@@ -14,24 +14,43 @@
 #include <Game/Systems/VisibilitySystem.hpp>
 #include <IO/Commands/CreateMap.hpp>
 #include <IO/Commands/March.hpp>
+#include <IO/Commands/SpawnHealer.hpp>
 #include <IO/Commands/SpawnHunter.hpp>
 #include <IO/Commands/SpawnSwordsman.hpp>
+#include <IO/Commands/SpawnTower.hpp>
 #include <IO/System/CommandParser.hpp>
 #include <IO/System/PrintDebug.hpp>
 #include <Math/Rect2.hpp>
 #include <fstream>
+#include <sstream>
 
 namespace sw::game
 {
+	template <typename TCommand>
+	void registerParserCommand(const std::shared_ptr<ecs::Context>& context, io::CommandParser& parser)
+	{
+		parser.add<TCommand>(
+			[context](auto data)
+			{
+				printDebug(std::cout, data);
+
+				context->getDispatcher() << data;
+			});
+	}
+
+	template <typename... TCommand>
+	void registerParserCommands(const std::shared_ptr<ecs::Context>& context, io::CommandParser& parser)
+	{
+		(registerParserCommand<TCommand>(context, parser), ...);
+	}
+
 	static bool hasAnyCommands(const std::shared_ptr<ecs::Context>& context)
 	{
 		debug::check(context, "invalid context");
 
 		return !context->for_each<BehaviourComponent>(
 			[](const uint32_t entityId, std::shared_ptr<BehaviourComponent> behaviour)
-			{
-				return behaviour->targetId != InvalidId || behaviour->waypoint.has_value();
-			});
+			{ return behaviour->targetId != InvalidId || behaviour->waypoint.has_value(); });
 	}
 
 	GameApp::GameApp() :
@@ -70,12 +89,11 @@ namespace sw::game
 		context->clear();
 	}
 
-	bool GameApp::loadFromFile(const std::string& fileName)
+	bool GameApp::loadFromStream(std::istream& stream)
 	{
 		debug::check(context, "invalid context");
 
-		std::ifstream file(fileName);
-		if (!file)
+		if (!stream)
 		{
 			return false;
 		}
@@ -85,41 +103,30 @@ namespace sw::game
 		// eval game scenario
 		std::cout << "Commands:\n";
 		io::CommandParser parser;
-		parser
-			.add<io::CreateMap>(
-				[this](auto data)
-				{
-					printDebug(std::cout, data);
-
-					context->getDispatcher() << data;
-				})
-			.add<io::SpawnSwordsman>(
-				[this](auto data)
-				{
-					printDebug(std::cout, data);
-
-					context->getDispatcher() << data;
-				})
-			.add<io::SpawnHunter>(
-				[this](auto data)
-				{
-					printDebug(std::cout, data);
-
-					context->getDispatcher() << data;
-				})
-			.add<io::March>(
-				[this](auto data)
-				{
-					printDebug(std::cout, data);
-
-					context->getDispatcher() << data;
-				});
-
-		parser.parse(file);
+		registerParserCommands<
+			io::CreateMap,
+			io::SpawnSwordsman,
+			io::SpawnHunter,
+			io::SpawnTower,
+			io::SpawnHealer,
+			io::March>(context, parser);
+		parser.parse(stream);
 
 		// force dispatch events
 		context->getDispatcher().dispatchAll();
 		return true;
+	}
+
+	bool GameApp::loadFromFile(const std::string& fileName)
+	{
+		std::ifstream file(fileName);
+		return loadFromStream(file);
+	}
+
+	bool GameApp::loadFromStr(const std::string& scenario)
+	{
+		std::stringstream stream(scenario);
+		return loadFromStream(stream);
 	}
 
 	void GameApp::init()

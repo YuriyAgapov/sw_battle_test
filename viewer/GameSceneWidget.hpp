@@ -13,6 +13,8 @@ public:
 	virtual void paintEvent(QPaintEvent* event) final;
 	virtual void resizeEvent(QResizeEvent* event) final;
 
+	void clearTempLayer(); //TODO: use context notifiers
+
 private:
 	void updateViewTransform();
 	void setSceneSize(const QPointF& inSceneSize);
@@ -32,5 +34,7 @@ private:
 
 	std::unordered_map<uint32_t, Item> items;
 	std::vector<Item> died;
+
+	std::vector<std::pair<QLineF, uint8_t>> attacks;
 };
 

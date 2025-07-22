@@ -4,5 +4,7 @@
         <file alias="hunter">images/hunter.png</file>
         <file alias="swordsman">images/swordsman.png</file>
         <file alias="waypoint">images/waypoint.png</file>
+        <file alias="tower">images/tower.png</file>
+        <file alias="healer">images/healer.png</file>
     </qresource>
 </RCC>

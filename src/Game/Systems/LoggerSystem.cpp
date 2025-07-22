@@ -6,6 +6,7 @@
 #include <IO/Events/MarchStarted.hpp>
 #include <IO/Events/UnitAttacked.hpp>
 #include <IO/Events/UnitDied.hpp>
+#include <IO/Events/UnitHealed.hpp>
 #include <IO/Events/UnitMoved.hpp>
 #include <IO/Events/UnitSpawned.hpp>
 #include <IO/System/EventLog.hpp>
@@ -31,6 +32,7 @@ namespace sw::game
 		subscribeLogger<io::UnitSpawned>(context);
 		subscribeLogger<io::UnitDied>(context);
 		subscribeLogger<io::UnitAttacked>(context);
+		subscribeLogger<io::UnitHealed>(context);
 		subscribeLogger<io::UnitMoved>(context);
 	}
 

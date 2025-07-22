@@ -8,6 +8,7 @@
 #include <Game/Commands/DamageCommand.hpp>
 #include <IO/Events/UnitAttacked.hpp>
 #include <IO/Events/UnitDied.hpp>
+#include <IO/Events/UnitHealed.hpp>
 
 namespace sw::game
 {
@@ -37,7 +38,7 @@ namespace sw::game
 	{
 		auto causerDamageTaker = context->getComponent<DamageTakerComponent>(command.causerId);
 		// skip if causer died
-		if (causerDamageTaker->health == 0)
+		if (causerDamageTaker && causerDamageTaker->health == 0)
 		{
 			// interpret like the event was rolled back
 			return;
@@ -46,7 +47,7 @@ namespace sw::game
 		auto targetDamageTaker = context->getComponent<DamageTakerComponent>(command.targetId);
 
 		// skip if already died
-		if (targetDamageTaker->health == 0)
+		if (!targetDamageTaker || targetDamageTaker->health == 0)
 		{
 			//point for improvement: rules to revive with heal
 			return;
@@ -73,10 +74,14 @@ namespace sw::game
 			break;
 
 			case DamageType::Heal:
-				targetDamageTaker->health
-					= std::min(targetDamageTaker->health + calcHeal(command), targetDamageTaker->maxHealth);
+				{
+					const uint32_t healAmount = calcHeal(command);
+					targetDamageTaker->health
+						= std::min(targetDamageTaker->health + calcHeal(command), targetDamageTaker->maxHealth);
 
-				//todo: log heal
+					//todo: log heal
+					context->getDispatcher() << io::UnitHealed{command.causerId, command.targetId, healAmount, targetDamageTaker->health};
+				}
 				break;
 			default: break;
 		}

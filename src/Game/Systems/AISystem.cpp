@@ -88,10 +88,9 @@ namespace sw::game
 			{
 				// attack case, skip moving
 			}
-			else if (behaviour->waypoint)
+			else if (behaviour->waypoint && movement->speed > 0)
 			{
-				uint32_t speed = 1;	 // poi: make speed attribute
-				const math::Vector2 velocity = math::makeVelocity(movement->pos, *behaviour->waypoint, speed);
+				const math::Vector2 velocity = math::makeVelocity(movement->pos, *behaviour->waypoint, movement->speed);
 				context->getDispatcher() << MoveCommand{entityId, velocity};
 			}
 		}

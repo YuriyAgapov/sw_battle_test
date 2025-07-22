@@ -98,6 +98,14 @@ namespace sw::ecs
 			return compIter != components.end() ? std::static_pointer_cast<ComponentType>(compIter->second) : nullptr;
 		}
 
+		template <typename ComponentType>
+		std::shared_ptr<ComponentType> ensureComponent(const uint32_t entityId)
+		{
+			auto comp = getComponent<ComponentType>(entityId);
+			return comp ? comp : addComponent<ComponentType>(entityId);
+		}
+
+
 		/// returns singletone component
 		template <typename ComponentType>
 		std::shared_ptr<ComponentType> getSingletoneComponent() const

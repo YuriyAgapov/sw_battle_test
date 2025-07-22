@@ -2,10 +2,14 @@
 
 #include <QMainWindow>
 
-class QTextBrowser;
 class GameSceneWidget;
+class QTextBrowser;
+class QTextEdit;
 
-namespace sw::game {class GameApp;}
+namespace sw::game
+{
+	class GameApp;
+}
 
 class ViewerMainWindow : public QMainWindow
 {
@@ -16,11 +20,11 @@ public:
 	virtual ~ViewerMainWindow();
 
 private:
-	void subscribeLog();
+	void subscribeToLogger();
 
 	std::unique_ptr<sw::game::GameApp> app;
 	GameSceneWidget* gameSceneWidget;
 	QTextBrowser* logView;
+	QTextEdit* scenarioEdit;
 	QString lastFileName;
-
 };

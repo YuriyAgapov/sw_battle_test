@@ -7,6 +7,7 @@
 #include <IO/Events/MarchStarted.hpp>
 #include <IO/Events/UnitAttacked.hpp>
 #include <IO/Events/UnitDied.hpp>
+#include <IO/Events/UnitHealed.hpp>
 #include <IO/Events/UnitMoved.hpp>
 #include <IO/Events/UnitSpawned.hpp>
 #include <Math/Algo.hpp>
@@ -56,6 +57,18 @@ GameSceneWidget::GameSceneWidget(const std::shared_ptr<sw::ecs::Context>& contex
 			items[event.unitId].pos = toPointF(event.x, event.y);
 			repaint();
 		});
+	context->getDispatcher().subscribe<io::UnitAttacked>(
+		[this](const io::UnitAttacked& event)
+		{
+			attacks.emplace_back(QLineF(items[event.attackerUnitId].pos, items[event.targetUnitId].pos), 1);
+			repaint();
+		});
+	context->getDispatcher().subscribe<io::UnitHealed>(
+		[this](const io::UnitHealed& event)
+		{
+			attacks.emplace_back(QLineF(items[event.attackerUnitId].pos, items[event.targetUnitId].pos), 2);
+			repaint();
+		});
 	context->getDispatcher().subscribe<io::UnitDied>(
 		[this](const io::UnitDied& event)
 		{
@@ -77,6 +90,8 @@ void GameSceneWidget::paintEvent(QPaintEvent* event)
 	static std::unordered_map<std::string, QPixmap> styles{
 		{"Swordsman", QPixmap(":/images/swordsman")},
 		{"Hunter", QPixmap(":/images/hunter")},
+		{"Tower", QPixmap(":/images/tower")},
+		{"Healer", QPixmap(":/images/healer")},
 		{"died", QPixmap(":/images/died")}};
 
 	const QPointF pixOffset{0.1, 0.1};
@@ -142,12 +157,26 @@ void GameSceneWidget::paintEvent(QPaintEvent* event)
 		const QPointF pos = sceneTransform.map(item.pos + pixOffset);
 		painter.drawPixmap(pos, styles[item.type].scaled(sceneScale, sceneScale, Qt::AspectRatioMode::KeepAspectRatio));
 	}
+
+	// attacks layer
+	for (const auto [dir, type] : attacks)
+	{
+		painter.setPen(type == 1 ? Qt::red : Qt::green);//1 - attack, 2 - heal
+		painter.drawLine(
+			sceneTransform.map(dir.p1() + QPointF(0.5, 0.5)), sceneTransform.map(dir.p2() + QPointF(0.5, 0.5)));
+	}
 }
 
 void GameSceneWidget::resizeEvent(QResizeEvent* event)
 {
 	QWidget::resizeEvent(event);
 	updateViewTransform();
+}
+
+void GameSceneWidget::clearTempLayer()
+{
+	attacks.clear();
+	repaint();
 }
 
 void GameSceneWidget::updateViewTransform()

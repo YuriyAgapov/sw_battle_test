@@ -9,5 +9,6 @@ namespace sw::game
 	{
 		DispositionType type = DispositionType::Ground;
 		math::Vector2 pos{};
+		uint32_t speed{};
 	};
 }

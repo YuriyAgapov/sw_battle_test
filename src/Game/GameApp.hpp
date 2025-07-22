@@ -13,7 +13,9 @@ namespace sw::game
 
 		void exec(const uint32_t tickLimit);
 		void clear();
+		bool loadFromStream(std::istream& stream);
 		bool loadFromFile(const std::string& fileName);
+		bool loadFromStr(const std::string& scenario);
 
 	private:
 		void init();
